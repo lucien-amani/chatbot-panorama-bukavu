@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0d111d"/>
+      <stop offset="100%" style="stop-color:#07090e"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#c5a880"/>
+      <stop offset="100%" style="stop-color:#a88d65"/>
+    </linearGradient>
+  </defs>
+  <!-- Background rounded square -->
+  <rect width="64" height="64" rx="14" fill="url(#bgGrad)"/>
+  <!-- Border -->
+  <rect x="1" y="1" width="62" height="62" rx="13" stroke="url(#goldGrad)" stroke-width="1.5" fill="none" opacity="0.4"/>
+  <!-- P letter mark -->
+  <text
+    x="32"
+    y="44"
+    font-family="Georgia, serif"
+    font-size="34"
+    font-weight="700"
+    text-anchor="middle"
+    fill="url(#goldGrad)"
+    letter-spacing="-1"
+  >P</text>
+  <!-- Small decorative dot -->
+  <circle cx="32" cy="52" r="2.5" fill="url(#goldGrad)" opacity="0.6"/>
+</svg>

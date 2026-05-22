@@ -1,0 +1,97 @@
+installer le sdk 
+npm install @google/genai
+
+Pour genere du texte
+import { GoogleGenAI } from "@google/genai";
+
+const ai = new GoogleGenAI({});
+
+async function main() {
+  const response = await ai.models.generateContent({
+    model: "gemini-3.5-flash",
+    contents: "Explain how AI works in a few words",
+  });
+
+  console.log(response.text);
+}
+
+main();
+
+Réponses dynamiques
+
+async function main() {
+  const responseStream = await ai.models.generateContentStream({
+    model: "gemini-3.5-flash",
+    contents: "Explain how AI works in detail",
+  });
+
+  for await (const chunk of responseStream) {
+    process.stdout.write(chunk.text);
+  }
+}
+
+main();
+
+
+Conversations multitours
+
+async function main() {
+  const chat = ai.chats.create({ model: "gemini-3.5-flash" });
+
+  let response = await chat.sendMessage({ message: "I have 2 dogs in my house." });
+  console.log("Response 1:", response.text);
+
+  response = await chat.sendMessage({ message: "How many paws are in my house?" });
+  console.log("Response 2:", response.text);
+}
+
+main();
+
+
+Utiliser des outils
+
+async function main() {
+  const response = await ai.models.generateContent({
+    model: "gemini-3.5-flash",
+    contents: "Who won the euro 2024?",
+    config: {
+      tools: [{ googleSearch: {} }]
+    }
+  });
+
+  console.log(response.text);
+
+  const metadata = response.candidates[0]?.groundingMetadata;
+  if (metadata?.webSearchQueries) {
+    console.log("\nSearch queries executed:");
+    for (const query of metadata.webSearchQueries) {
+      console.log(` - ${query}`);
+    }
+  }
+  if (metadata?.groundingChunks) {
+    console.log("\nSources:");
+    for (const chunk of metadata.groundingChunks) {
+      console.log(` - [${chunk.web.title}](${chunk.web.uri})`);
+    }
+  }
+}
+
+main();
+
+Fournir explicitement la clé API
+
+import { GoogleGenAI } from "@google/genai";
+
+const ai = new GoogleGenAI({ apiKey: "YOUR_API_KEY" });
+
+async function main() {
+  const response = await ai.models.generateContent({
+    model: "gemini-3.5-flash",
+    contents: "Explain how AI works in a few words",
+  });
+  console.log(response.text);
+}
+
+main();
+
+Clé API: AIzaSyCttZ7nMs4NStbmKlul6cypib8dFeY8Cuc
