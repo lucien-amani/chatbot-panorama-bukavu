@@ -1,11 +1,30 @@
 import { GoogleGenAI } from '@google/genai';
 
-const DEFAULT_API_KEY = 'AIzaSyCrVHVIc9lB5_WTUktolee8J3Q3vwODFzk';
+const DEFAULT_API_KEY = '';
 const MODEL_NAME = 'gemini-3.5-flash';
 
 export function getApiKey() {
-  return localStorage.getItem('hackerbot_api_key') || DEFAULT_API_KEY;
+  return (
+    localStorage.getItem('panorama_assist_api_key') ||
+    localStorage.getItem('hackerbot_api_key') ||
+    (import.meta.env && import.meta.env.VITE_GEMINI_API_KEY) ||
+    DEFAULT_API_KEY
+  );
 }
+
+export function saveApiKey(key) {
+  if (key && key.trim()) {
+    localStorage.setItem('panorama_assist_api_key', key.trim());
+  } else {
+    localStorage.removeItem('panorama_assist_api_key');
+  }
+}
+
+export function clearApiKey() {
+  localStorage.removeItem('panorama_assist_api_key');
+  localStorage.removeItem('hackerbot_api_key');
+}
+
 
 // System prompt — persona Panorama Assist (Hôtel Panorama, Bukavu, RDC)
 const SYSTEM_INSTRUCTION = `Tu es Panorama Assist, un assistant virtuel de haut standing, chaleureux et professionnel destiné aux clients et hôtes en République Démocratique du Congo (RDC).
@@ -29,6 +48,9 @@ Directives importantes de communication :
  */
 export function createChatSession() {
   const apiKey = getApiKey();
+  if (!apiKey || !apiKey.trim()) {
+    throw new Error("Clé API manquante ou invalide. Veuillez configurer votre clé d'API Google Gemini dans les paramètres de l'assistant (icône d'engrenage en haut à droite).");
+  }
   const ai = new GoogleGenAI({ apiKey });
 
   return ai.chats.create({

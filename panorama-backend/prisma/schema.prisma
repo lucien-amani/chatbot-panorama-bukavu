@@ -1,0 +1,172 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Utilisateur {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  password_hash  String
+  nom_affiche    String
+  url_avatar     String?
+  est_admin      Boolean   @default(false)
+  created_at     DateTime  @default(now())
+
+  profil             Profil?
+  reservations       Reservation[]
+  commandes          Commande[]
+  journaux_chat      JournalChat[]
+}
+
+model Profil {
+  id                       String      @id @default(cuid())
+  utilisateur_id           String      @unique
+  utilisateur              Utilisateur @relation(fields: [utilisateur_id], references: [id], onDelete: Cascade)
+  telephone                String
+  type_document_identite   String      // "passeport" | "cni"
+  numero_document_identite String
+  nationalite              String
+  pays_residence           String
+}
+
+model TypeChambre {
+  id               String     @id @default(cuid())
+  nom              String     @unique
+  description      String?
+  prix_base_nuit   Float
+  capacite_adultes Int
+  capacite_enfants Int
+  equipements      String?    // JSON stringified
+
+  chambres         Chambre[]
+}
+
+model Chambre {
+  id              String      @id @default(cuid())
+  numero_chambre  String      @unique
+  type_chambre_id String
+  type_chambre    TypeChambre @relation(fields: [type_chambre_id], references: [id], onDelete: Restrict)
+  etage           Int?
+  statut          String      // "disponible" | "occupee" | "nettoyage" | "maintenance"
+  notes           String?
+
+  lignes_reservation LigneReservation[]
+  commandes          Commande[]
+}
+
+model Reservation {
+  id                 String             @id @default(cuid())
+  utilisateur_id     String
+  utilisateur        Utilisateur        @relation(fields: [utilisateur_id], references: [id], onDelete: Restrict)
+  statut             String             // "en_attente" | "confirmee" | "payee" | "en_sejour" | "terminee" | "annulee"
+  montant_total      Float?
+  date_arrivee       DateTime
+  date_depart        DateTime
+  nombre_voyageurs   Int?
+  demandes_speciales String?
+
+  lignes_reservation LigneReservation[]
+  commandes          Commande[]
+  notifications      Notification[]
+
+  @@index([utilisateur_id])
+  @@index([statut])
+  @@index([date_arrivee, date_depart])
+}
+
+model LigneReservation {
+  id                 String      @id @default(cuid())
+  reservation_id     String
+  reservation        Reservation @relation(fields: [reservation_id], references: [id], onDelete: Cascade)
+  chambre_id         String
+  chambre            Chambre     @relation(fields: [chambre_id], references: [id], onDelete: Restrict)
+  prix_par_nuit      Float
+  lit_supplementaire Boolean     @default(false)
+
+  @@index([reservation_id])
+  @@index([chambre_id])
+}
+
+model Plat {
+  id          String   @id @default(cuid())
+  nom         String   @unique
+  description String?
+  categorie   String   // "entree" | "plat_principal" | "dessert" | "boisson" | "vin"
+  prix        Float
+  disponible  Boolean  @default(true)
+  url_image   String?
+
+  lignes_commande LigneCommande[]
+
+  @@index([categorie])
+  @@index([disponible])
+}
+
+model Commande {
+  id             String       @id @default(cuid())
+  utilisateur_id String
+  utilisateur    Utilisateur  @relation(fields: [utilisateur_id], references: [id], onDelete: Restrict)
+  reservation_id String?
+  reservation    Reservation? @relation(fields: [reservation_id], references: [id], onDelete: SetNull)
+  chambre_id     String?
+  chambre        Chambre?     @relation(fields: [chambre_id], references: [id], onDelete: SetNull)
+  type_commande  String       // "room_service" | "restaurant" | "blanchisserie" | "navette"
+  statut         String       // "en_attente" | "en_preparation" | "prete" | "livree" | "terminee" | "annulee"
+  montant_total  Float?
+  notes          String?
+
+  lignes_commande LigneCommande[]
+  notifications   Notification[]
+
+  @@index([utilisateur_id])
+  @@index([reservation_id])
+  @@index([statut])
+  @@index([type_commande])
+}
+
+model LigneCommande {
+  id                     String   @id @default(cuid())
+  commande_id            String
+  commande               Commande @relation(fields: [commande_id], references: [id], onDelete: Cascade)
+  type_article           String   // "plat" | "boisson" | "autre"
+  plat_id                String?
+  plat                   Plat?    @relation(fields: [plat_id], references: [id], onDelete: SetNull)
+  nom_article            String
+  quantite               Int
+  prix_unitaire          Float
+  instructions_speciales String?
+
+  @@index([commande_id])
+  @@index([plat_id])
+}
+
+model JournalChat {
+  id             String       @id @default(cuid())
+  utilisateur_id String?
+  utilisateur    Utilisateur? @relation(fields: [utilisateur_id], references: [id], onDelete: SetNull)
+  session_id     String
+  role           String       // "utilisateur" | "assistant" | "fonction"
+  contenu        String
+  nom_fonction   String?
+
+  @@index([session_id])
+  @@index([utilisateur_id])
+}
+
+model Notification {
+  id             String       @id @default(cuid())
+  commande_id    String?
+  commande       Commande?    @relation(fields: [commande_id], references: [id], onDelete: SetNull)
+  reservation_id String?
+  reservation    Reservation? @relation(fields: [reservation_id], references: [id], onDelete: SetNull)
+  type           String       // "nouvelle_commande" | "commande_prete" | "arrivee_aujourd_hui" | "nettoyage_chambre"
+  message        String
+  est_lue        Boolean      @default(false)
+
+  @@index([type])
+  @@index([est_lue])
+}

@@ -1,0 +1,395 @@
+[
+  {
+    "name": "utilisateurs",
+    "type": "base",
+    "fields": [
+      { "name": "identifiant_google", "type": "text", "required": true, "max": 255 },
+      { "name": "email", "type": "email", "required": true },
+      { "name": "nom_affiche", "type": "text", "required": true, "max": 255 },
+      { "name": "url_avatar", "type": "url", "required": false },
+      { "name": "est_admin", "type": "bool", "required": false },
+      { "name": "derniere_connexion", "type": "date", "required": false }
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX idx_utilisateurs_google ON utilisateurs (identifiant_google)",
+      "CREATE UNIQUE INDEX idx_utilisateurs_email ON utilisateurs (email)"
+    ],
+    "listRule": "@request.auth.id != ''",
+    "viewRule": "@request.auth.id = id || @request.auth.est_admin = true",
+    "createRule": "",
+    "updateRule": "@request.auth.id = id",
+    "deleteRule": null
+  },
+
+  {
+    "name": "profils",
+    "type": "base",
+    "fields": [
+      {
+        "name": "utilisateur_id",
+        "type": "relation",
+        "required": true,
+        "collectionId": "_utilisateurs_",
+        "cascadeDelete": true,
+        "maxSelect": 1
+      },
+      { "name": "telephone", "type": "text", "required": true, "max": 20 },
+      {
+        "name": "type_document_identite",
+        "type": "select",
+        "required": true,
+        "maxSelect": 1,
+        "values": ["passeport", "cni"]
+      },
+      { "name": "numero_document_identite", "type": "text", "required": true, "max": 50 },
+      { "name": "nationalite", "type": "text", "required": true, "max": 100 },
+      { "name": "pays_residence", "type": "text", "required": true, "max": 100 }
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX idx_profils_utilisateur ON profils (utilisateur_id)"
+    ],
+    "listRule": "@request.auth.id != '' && @request.auth.est_admin = true",
+    "viewRule": "@request.auth.id = utilisateur_id || @request.auth.est_admin = true",
+    "createRule": "@request.auth.id != ''",
+    "updateRule": "@request.auth.id = utilisateur_id",
+    "deleteRule": null
+  },
+
+  {
+    "name": "types_chambres",
+    "type": "base",
+    "fields": [
+      { "name": "nom", "type": "text", "required": true, "max": 100 },
+      { "name": "description", "type": "editor", "required": false },
+      { "name": "prix_base_nuit", "type": "number", "required": true, "min": 0 },
+      { "name": "capacite_adultes", "type": "number", "required": true, "min": 1, "max": 10 },
+      { "name": "capacite_enfants", "type": "number", "required": true, "min": 0, "max": 10 },
+      { "name": "equipements", "type": "json", "required": false }
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX idx_types_chambres_nom ON types_chambres (nom)"
+    ],
+    "listRule": "",
+    "viewRule": "",
+    "createRule": "@request.auth.est_admin = true",
+    "updateRule": "@request.auth.est_admin = true",
+    "deleteRule": "@request.auth.est_admin = true"
+  },
+
+  {
+    "name": "chambres",
+    "type": "base",
+    "fields": [
+      { "name": "numero_chambre", "type": "text", "required": true, "max": 10 },
+      {
+        "name": "type_chambre_id",
+        "type": "relation",
+        "required": true,
+        "collectionId": "_types_chambres_",
+        "cascadeDelete": false,
+        "maxSelect": 1
+      },
+      { "name": "etage", "type": "number", "required": false, "min": 0, "max": 99 },
+      {
+        "name": "statut",
+        "type": "select",
+        "required": true,
+        "maxSelect": 1,
+        "values": ["disponible", "occupee", "nettoyage", "maintenance"]
+      },
+      { "name": "notes", "type": "text", "required": false }
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX idx_chambres_numero ON chambres (numero_chambre)"
+    ],
+    "listRule": "",
+    "viewRule": "",
+    "createRule": "@request.auth.est_admin = true",
+    "updateRule": "@request.auth.est_admin = true",
+    "deleteRule": "@request.auth.est_admin = true"
+  },
+
+  {
+    "name": "reservations",
+    "type": "base",
+    "fields": [
+      {
+        "name": "utilisateur_id",
+        "type": "relation",
+        "required": true,
+        "collectionId": "_utilisateurs_",
+        "cascadeDelete": false,
+        "maxSelect": 1
+      },
+      {
+        "name": "statut",
+        "type": "select",
+        "required": true,
+        "maxSelect": 1,
+        "values": ["en_attente", "confirmee", "payee", "en_sejour", "terminee", "annulee"]
+      },
+      { "name": "montant_total", "type": "number", "required": false, "min": 0 },
+      { "name": "date_arrivee", "type": "date", "required": true },
+      { "name": "date_depart", "type": "date", "required": true },
+      { "name": "nombre_voyageurs", "type": "number", "required": false, "min": 1, "max": 20 },
+      { "name": "demandes_speciales", "type": "text", "required": false }
+    ],
+    "indexes": [
+      "CREATE INDEX idx_reservations_utilisateur ON reservations (utilisateur_id)",
+      "CREATE INDEX idx_reservations_statut ON reservations (statut)",
+      "CREATE INDEX idx_reservations_dates ON reservations (date_arrivee, date_depart)"
+    ],
+    "listRule": "@request.auth.id = utilisateur_id || @request.auth.est_admin = true",
+    "viewRule": "@request.auth.id = utilisateur_id || @request.auth.est_admin = true",
+    "createRule": "@request.auth.id != ''",
+    "updateRule": "@request.auth.id = utilisateur_id || @request.auth.est_admin = true",
+    "deleteRule": null
+  },
+
+  {
+    "name": "lignes_reservation",
+    "type": "base",
+    "fields": [
+      {
+        "name": "reservation_id",
+        "type": "relation",
+        "required": true,
+        "collectionId": "_reservations_",
+        "cascadeDelete": true,
+        "maxSelect": 1
+      },
+      {
+        "name": "chambre_id",
+        "type": "relation",
+        "required": true,
+        "collectionId": "_chambres_",
+        "cascadeDelete": false,
+        "maxSelect": 1
+      },
+      { "name": "prix_par_nuit", "type": "number", "required": true, "min": 0 },
+      { "name": "lit_supplementaire", "type": "bool", "required": false }
+    ],
+    "indexes": [
+      "CREATE INDEX idx_lignes_res_reservation ON lignes_reservation (reservation_id)",
+      "CREATE INDEX idx_lignes_res_chambre ON lignes_reservation (chambre_id)"
+    ],
+    "listRule": "@request.auth.id != ''",
+    "viewRule": "@request.auth.id != ''",
+    "createRule": "@request.auth.id != ''",
+    "updateRule": "@request.auth.est_admin = true",
+    "deleteRule": null
+  },
+
+  {
+    "name": "plats",
+    "type": "base",
+    "fields": [
+      { "name": "nom", "type": "text", "required": true, "max": 255 },
+      { "name": "description", "type": "text", "required": false },
+      {
+        "name": "categorie",
+        "type": "select",
+        "required": true,
+        "maxSelect": 1,
+        "values": ["entree", "plat_principal", "dessert", "boisson", "vin"]
+      },
+      { "name": "prix", "type": "number", "required": true, "min": 0 },
+      { "name": "disponible", "type": "bool", "required": false },
+      {
+        "name": "url_image",
+        "type": "file",
+        "required": false,
+        "maxSelect": 1,
+        "maxSize": 5242880,
+        "mimeTypes": ["image/jpeg", "image/png", "image/webp"],
+        "thumbs": ["400x300", "100x100"]
+      }
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX idx_plats_nom ON plats (nom)",
+      "CREATE INDEX idx_plats_categorie ON plats (categorie)",
+      "CREATE INDEX idx_plats_disponible ON plats (disponible)"
+    ],
+    "listRule": "",
+    "viewRule": "",
+    "createRule": "@request.auth.est_admin = true",
+    "updateRule": "@request.auth.est_admin = true",
+    "deleteRule": "@request.auth.est_admin = true"
+  },
+
+  {
+    "name": "commandes",
+    "type": "base",
+    "fields": [
+      {
+        "name": "utilisateur_id",
+        "type": "relation",
+        "required": true,
+        "collectionId": "_utilisateurs_",
+        "cascadeDelete": false,
+        "maxSelect": 1
+      },
+      {
+        "name": "reservation_id",
+        "type": "relation",
+        "required": false,
+        "collectionId": "_reservations_",
+        "cascadeDelete": false,
+        "maxSelect": 1
+      },
+      {
+        "name": "chambre_id",
+        "type": "relation",
+        "required": false,
+        "collectionId": "_chambres_",
+        "cascadeDelete": false,
+        "maxSelect": 1
+      },
+      {
+        "name": "type_commande",
+        "type": "select",
+        "required": true,
+        "maxSelect": 1,
+        "values": ["room_service", "restaurant", "blanchisserie", "navette"]
+      },
+      {
+        "name": "statut",
+        "type": "select",
+        "required": true,
+        "maxSelect": 1,
+        "values": ["en_attente", "en_preparation", "prete", "livree", "terminee", "annulee"]
+      },
+      { "name": "montant_total", "type": "number", "required": false, "min": 0 },
+      { "name": "notes", "type": "text", "required": false }
+    ],
+    "indexes": [
+      "CREATE INDEX idx_commandes_utilisateur ON commandes (utilisateur_id)",
+      "CREATE INDEX idx_commandes_reservation ON commandes (reservation_id)",
+      "CREATE INDEX idx_commandes_statut ON commandes (statut)",
+      "CREATE INDEX idx_commandes_type ON commandes (type_commande)"
+    ],
+    "listRule": "@request.auth.id = utilisateur_id || @request.auth.est_admin = true",
+    "viewRule": "@request.auth.id = utilisateur_id || @request.auth.est_admin = true",
+    "createRule": "@request.auth.id != ''",
+    "updateRule": "@request.auth.id = utilisateur_id || @request.auth.est_admin = true",
+    "deleteRule": null
+  },
+
+  {
+    "name": "lignes_commande",
+    "type": "base",
+    "fields": [
+      {
+        "name": "commande_id",
+        "type": "relation",
+        "required": true,
+        "collectionId": "_commandes_",
+        "cascadeDelete": true,
+        "maxSelect": 1
+      },
+      {
+        "name": "type_article",
+        "type": "select",
+        "required": true,
+        "maxSelect": 1,
+        "values": ["plat", "boisson", "autre"]
+      },
+      {
+        "name": "plat_id",
+        "type": "relation",
+        "required": false,
+        "collectionId": "_plats_",
+        "cascadeDelete": false,
+        "maxSelect": 1
+      },
+      { "name": "nom_article", "type": "text", "required": true, "max": 255 },
+      { "name": "quantite", "type": "number", "required": true, "min": 1, "max": 99 },
+      { "name": "prix_unitaire", "type": "number", "required": true, "min": 0 },
+      { "name": "instructions_speciales", "type": "text", "required": false }
+    ],
+    "indexes": [
+      "CREATE INDEX idx_lignes_cmd_commande ON lignes_commande (commande_id)",
+      "CREATE INDEX idx_lignes_cmd_plat ON lignes_commande (plat_id)"
+    ],
+    "listRule": "@request.auth.id != ''",
+    "viewRule": "@request.auth.id != ''",
+    "createRule": "@request.auth.id != ''",
+    "updateRule": "@request.auth.est_admin = true",
+    "deleteRule": null
+  },
+
+  {
+    "name": "journaux_chat",
+    "type": "base",
+    "fields": [
+      {
+        "name": "utilisateur_id",
+        "type": "relation",
+        "required": false,
+        "collectionId": "_utilisateurs_",
+        "cascadeDelete": false,
+        "maxSelect": 1
+      },
+      { "name": "session_id", "type": "text", "required": true, "max": 100 },
+      {
+        "name": "role",
+        "type": "select",
+        "required": true,
+        "maxSelect": 1,
+        "values": ["utilisateur", "assistant", "fonction"]
+      },
+      { "name": "contenu", "type": "text", "required": true },
+      { "name": "nom_fonction", "type": "text", "required": false, "max": 100 }
+    ],
+    "indexes": [
+      "CREATE INDEX idx_journaux_session ON journaux_chat (session_id)",
+      "CREATE INDEX idx_journaux_utilisateur ON journaux_chat (utilisateur_id)"
+    ],
+    "listRule": "@request.auth.est_admin = true",
+    "viewRule": "@request.auth.id = utilisateur_id || @request.auth.est_admin = true",
+    "createRule": "",
+    "updateRule": null,
+    "deleteRule": null
+  },
+
+  {
+    "name": "notifications",
+    "type": "base",
+    "fields": [
+      {
+        "name": "commande_id",
+        "type": "relation",
+        "required": false,
+        "collectionId": "_commandes_",
+        "cascadeDelete": false,
+        "maxSelect": 1
+      },
+      {
+        "name": "reservation_id",
+        "type": "relation",
+        "required": false,
+        "collectionId": "_reservations_",
+        "cascadeDelete": false,
+        "maxSelect": 1
+      },
+      {
+        "name": "type",
+        "type": "select",
+        "required": true,
+        "maxSelect": 1,
+        "values": ["nouvelle_commande", "commande_prete", "arrivee_aujourd_hui", "nettoyage_chambre"]
+      },
+      { "name": "message", "type": "text", "required": true },
+      { "name": "est_lue", "type": "bool", "required": false }
+    ],
+    "indexes": [
+      "CREATE INDEX idx_notifications_type ON notifications (type)",
+      "CREATE INDEX idx_notifications_lue ON notifications (est_lue)"
+    ],
+    "listRule": "@request.auth.est_admin = true",
+    "viewRule": "@request.auth.est_admin = true",
+    "createRule": "",
+    "updateRule": "@request.auth.est_admin = true",
+    "deleteRule": "@request.auth.est_admin = true"
+  }
+]
