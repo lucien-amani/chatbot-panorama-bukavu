@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Panorama Assist - Assistant Client IA pour l'Hôtellerie
 
 **Panorama Assist** (anciennement Karibot) est un système d'assistance client multilingue basé sur l'Intelligence Artificielle, conçu spécifiquement pour les établissements hôteliers dans les pays à faible revenu. 
