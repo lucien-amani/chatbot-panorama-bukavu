@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Bed, ClipboardList, Utensils, DollarSign, LayoutDashboard, Users, UserCog, RefreshCw, Bell, LogOut, Menu, X, Camera } from 'lucide-react';
+import { Bed, ClipboardList, Utensils, DollarSign, LayoutDashboard, Users, User, UserCog, RefreshCw, Bell, LogOut, Menu, X, Camera, ExternalLink, Globe, Loader2, Pencil, FileText } from 'lucide-react';
 import { statsApi, chambresApi, reservationsApi, commandesApi, notificationsApi, utilisateursApi } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -262,6 +262,14 @@ function VueChambres() {
   const [chambreModale, setChambreModale] = useState(null); // null = fermée, {} = nouvelle, ou objet chambre
   const [typesChambres, setTypesChambres] = useState([]);
 
+  // Form states
+  const [numChambre, setNumChambre] = useState('');
+  const [etageChambre, setEtageChambre] = useState('');
+  const [selectedType, setSelectedType] = useState('');
+  const [selectedStatut, setSelectedStatut] = useState('disponible');
+  const [notesChambre, setNotesChambre] = useState('');
+  const [imgUrl, setImgUrl] = useState('');
+
   const chargerTypes = useCallback(async () => {
     try { const t = await chambresApi.types(); setTypesChambres(t); } catch(e){}
   }, []);
@@ -281,6 +289,17 @@ function VueChambres() {
     return () => clearInterval(intervalId);
   }, [charger, chargerTypes]);
 
+  useEffect(() => {
+    if (chambreModale) {
+      setNumChambre(chambreModale.numero_chambre || '');
+      setEtageChambre(chambreModale.etage !== undefined && chambreModale.etage !== null ? String(chambreModale.etage) : '');
+      setSelectedType(chambreModale.type_chambre_id || '');
+      setSelectedStatut(chambreModale.statut || 'disponible');
+      setNotesChambre(chambreModale.notes || '');
+      setImgUrl(chambreModale.image_url || '');
+    }
+  }, [chambreModale]);
+
   const changerStatut = async (id, statut) => {
     setUpdating(id);
     try {
@@ -292,14 +311,17 @@ function VueChambres() {
 
   const sauvegarderChambre = async (e) => {
     e.preventDefault();
-    const form = new FormData(e.target);
+    if (!selectedType) {
+      alert("Veuillez sélectionner un type de chambre.");
+      return;
+    }
     const data = {
-      numero_chambre: form.get('numero_chambre'),
-      type_chambre_id: form.get('type_chambre_id'),
-      etage: form.get('etage'),
-      statut: form.get('statut') || 'disponible',
-      notes: form.get('notes'),
-      image_url: form.get('image_url')
+      numero_chambre: numChambre,
+      type_chambre_id: selectedType,
+      etage: Number(etageChambre) || 1,
+      statut: selectedStatut,
+      notes: notesChambre,
+      image_url: imgUrl
     };
 
     try {
@@ -328,7 +350,7 @@ function VueChambres() {
 
   return (
     <div className="admin-view">
-      <div className="admin-view-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="admin-view-header" style={{ marginBottom: '24px', display: 'flex', justifycontent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)' }}>Gestion des Chambres</h1>
           <span className="admin-count">{chambres.length} chambres au total</span>
@@ -356,10 +378,10 @@ function VueChambres() {
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <button 
                           onClick={() => setChambreModale(ch)} 
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', opacity: 0.6 }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', opacity: 0.6, padding: '4px', color: 'var(--text-main)' }}
                           title="Modifier la chambre"
                         >
-                          ✏️
+                          <Pencil size={14} />
                         </button>
                         <StatutBadge statut={ch.statut} />
                       </div>
@@ -367,11 +389,11 @@ function VueChambres() {
                     <div className="arc-body">
                       <div className="arc-type">{ch.type_chambre?.nom}</div>
                       {isOccupiedByReservation && occupant && (
-                        <div style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: 700, marginTop: '4px' }}>
-                          👤 Occupée par {occupant.nom_affiche || occupant.email}
+                        <div style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: 700, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <User size={12} /> Occupée par {occupant.nom_affiche || occupant.email}
                         </div>
                       )}
-                      {ch.notes && <div className="arc-notes">📝 {ch.notes}</div>}
+                      {ch.notes && <div className="arc-notes"><FileText size={12} style={{ display: 'inline', marginRight: '4px' }} />{ch.notes}</div>}
                     </div>
                     <div className="arc-actions">
                       {isOccupiedByReservation ? (
@@ -415,43 +437,67 @@ function VueChambres() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div className="rsb-field">
                     <label>Numéro de chambre</label>
-                    <input type="text" name="numero_chambre" defaultValue={chambreModale.numero_chambre} required />
+                    <input type="text" value={numChambre} onChange={e => setNumChambre(e.target.value)} required />
                   </div>
                   <div className="rsb-field">
                     <label>Étage (numéro)</label>
-                    <input type="number" name="etage" defaultValue={chambreModale.etage} />
+                    <input type="number" value={etageChambre} onChange={e => setEtageChambre(e.target.value)} />
                   </div>
                 </div>
                 
                 <div className="rsb-field">
-                  <label>Type de Chambre</label>
-                  <select name="type_chambre_id" defaultValue={chambreModale.type_chambre_id} required>
-                    <option value="">Sélectionner un type...</option>
-                    {typesChambres.map(t => (
-                      <option key={t.id} value={t.id}>{t.nom} (${t.prix_base_nuit})</option>
-                    ))}
-                  </select>
+                  <label style={{ marginBottom: '8px', display: 'block' }}>Type de Chambre</label>
+                  <div className="modern-selection-grid">
+                    {typesChambres.map(t => {
+                      const isSelected = selectedType === t.id;
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setSelectedType(t.id)}
+                          className={`modern-type-chip ${isSelected ? 'active' : ''}`}
+                        >
+                          <span className="type-name">{t.nom}</span>
+                          <span className="type-price">${t.prix_base_nuit}/nuit</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                {!chambreModale.id && (
-                  <div className="rsb-field">
-                    <label>Statut initial</label>
-                    <select name="statut" defaultValue="disponible">
-                      <option value="disponible">Disponible</option>
-                      <option value="nettoyage">En nettoyage</option>
-                      <option value="maintenance">En maintenance</option>
-                    </select>
+                <div className="rsb-field">
+                  <label style={{ marginBottom: '8px', display: 'block' }}>Statut de la Chambre</label>
+                  <div className="modern-status-grid">
+                    {['disponible', 'occupee', 'nettoyage', 'maintenance'].map(st => {
+                      const isSelected = selectedStatut === st;
+                      const cfg = STATUT_CONFIG[st] || { label: st, color: '#666', bg: '#eee' };
+                      return (
+                        <button
+                          key={st}
+                          type="button"
+                          onClick={() => setSelectedStatut(st)}
+                          className={`modern-status-chip status-${st} ${isSelected ? 'active' : ''}`}
+                          style={{
+                            '--status-color': cfg.color,
+                            '--status-bg-alpha': cfg.bg,
+                          }}
+                        >
+                          <span className="status-dot" style={{ backgroundColor: cfg.color }} />
+                          {cfg.label}
+                        </button>
+                      );
+                    })}
                   </div>
-                )}
+                </div>
 
                 <div className="rsb-field">
                   <label>URL de l'image (optionnel, affichée publiquement)</label>
-                  <input type="url" name="image_url" defaultValue={chambreModale.image_url} placeholder="https://..." />
+                  <input type="url" value={imgUrl} onChange={e => setImgUrl(e.target.value)} placeholder="https://..." />
                 </div>
 
                 <div className="rsb-field">
                   <label>Notes (privé, ex: Réparation Clim)</label>
-                  <textarea name="notes" defaultValue={chambreModale.notes} style={{ background: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: '9px', padding: '10px', color: 'var(--text-main)', minHeight: '80px', outline: 'none' }}></textarea>
+                  <textarea value={notesChambre} onChange={e => setNotesChambre(e.target.value)} style={{ background: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: '9px', padding: '10px', color: 'var(--text-main)', minHeight: '80px', outline: 'none' }}></textarea>
                 </div>
               </div>
               <div className="admin-modal-footer">
@@ -601,7 +647,7 @@ function VueCommandes() {
                         <option value="livree">Livrée</option>
                         <option value="annulee">Annulée</option>
                       </select>
-                      {updating === c.id && <span style={{ marginLeft: '8px', fontSize: '12px' }}>⏳</span>}
+                      {updating === c.id && <Loader2 size={14} className="animate-spin" style={{ marginLeft: '8px', display: 'inline-block' }} />}
                     </td>
                   </tr>
                 ))
@@ -769,8 +815,12 @@ export default function AdminDashboard() {
           })}
         </nav>
 
-        <div className="admin-sidebar-footer" style={{ borderTop: '1px solid var(--border-color)', padding: '16px' }}>
-          <button className="admin-nav-item text-danger" onClick={handleLogout} style={{ width: '100%', border: 'none', background: 'transparent' }} title={!sidebarOpen ? "Déconnexion" : ""}>
+        <div className="admin-sidebar-footer" style={{ borderTop: '1px solid var(--border-color)', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <a href="/" target="_blank" rel="noopener noreferrer" className="admin-nav-item" title={!sidebarOpen ? "Voir le site" : ""} style={{ textDecoration: 'none', color: 'var(--text-muted)' }}>
+            <span className="admin-nav-icon"><Globe size={18} strokeWidth={1.5} /></span>
+            {sidebarOpen && <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Voir le site <ExternalLink size={12} /></span>}
+          </a>
+          <button className="admin-nav-item text-danger" onClick={handleLogout} style={{ width: '100%', border: 'none', background: 'transparent', cursor: 'pointer' }} title={!sidebarOpen ? "Déconnexion" : ""}>
             <span className="admin-nav-icon"><LogOut size={18} strokeWidth={1.5} /></span>
             {sidebarOpen && <span>Déconnexion</span>}
           </button>

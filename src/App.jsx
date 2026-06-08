@@ -14,14 +14,22 @@ import NotFoundPage from './pages/NotFoundPage';
 import LoginPage from './pages/LoginPage';
 
 function ProtectedRoute({ children, adminOnly = false }) {
-  const { user } = useAuth();
-  if (!user) return <Navigate to="/" replace />;
+  const { user, isLoading } = useAuth();
+  // Attendre que le contexte ait fini de charger le localStorage
+  if (isLoading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg-app)' }}>
+        <div style={{ width: 48, height: 48, border: '3px solid var(--border-color)', borderTopColor: 'var(--accent-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+  if (!user) return <Navigate to="/login" replace />;
   if (adminOnly && !user.est_admin) return <Navigate to="/" replace />;
   return children;
 }
 
 export default function App() {
-  const location = window.location.pathname; // or useLocation
   return (
     <div className="site-root">
       <Routes>

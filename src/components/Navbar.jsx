@@ -95,7 +95,8 @@ export default function Navbar() {
               </span>
             </button>
 
-            {user ? (
+            {/* Si utilisateur connecté ET pas admin : afficher profil */}
+            {user && !user.est_admin ? (
               <div className="navbar-user-wrap">
                 <button className="navbar-avatar-btn" onClick={() => setUserMenuOpen(o => !o)}>
                   {user.url_avatar
@@ -108,15 +109,9 @@ export default function Navbar() {
                     <div className="user-dropdown-header">
                       <strong>{user.nom_affiche}</strong>
                       <span>{user.email}</span>
-                      {user.est_admin && <span className="badge-admin">Admin</span>}
                     </div>
                     <Link to="/profil" className="user-dropdown-item" onClick={() => setUserMenuOpen(false)}>Mon Profil</Link>
                     <Link to="/mes-reservations" className="user-dropdown-item" onClick={() => setUserMenuOpen(false)}>Mes Réservations</Link>
-                    {user.est_admin && (
-                      <Link to="/admin" className="user-dropdown-item admin-link" onClick={() => setUserMenuOpen(false)}>
-                        Dashboard Admin
-                      </Link>
-                    )}
                     <button className="user-dropdown-item logout" onClick={() => { logout(); setUserMenuOpen(false); }}>
                       Déconnexion
                     </button>
@@ -124,6 +119,7 @@ export default function Navbar() {
                 )}
               </div>
             ) : (
+              /* Admin connecté ou non connecté : bouton Connexion */
               <div className="navbar-auth-btns">
                 <Link to="/login" className="navbar-login-btn">Connexion</Link>
               </div>

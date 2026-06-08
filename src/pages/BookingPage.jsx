@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { CheckCircle, Bed, User, CreditCard, Smartphone, Lock } from 'lucide-react';
+import { CheckCircle, Bed, User, CreditCard, Smartphone, Lock, AlertTriangle, Loader2 } from 'lucide-react';
 import { chambresApi, reservationsApi } from '../lib/api';
 
 const STEPS = ['Sélection', 'Profil', 'Paiement', 'Confirmation'];
@@ -253,13 +253,19 @@ export default function BookingPage() {
               </div>
               <div className="step-btns">
                 {submitError && (
-                  <div style={{ color: '#ef4444', background: 'rgba(239,68,68,0.1)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', width: '100%', marginBottom: '8px' }}>
-                    ⚠️ {submitError}
+                  <div style={{ color: '#ef4444', background: 'rgba(239,68,68,0.1)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', width: '100%', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <AlertTriangle size={15} />
+                    <span>{submitError}</span>
                   </div>
                 )}
                 <button type="button" className="btn-ghost" onClick={() => setStep(1)}>← Retour</button>
                 <button type="submit" className="btn-primary" disabled={submitting}>
-                  {submitting ? '⏳ Réservation en cours…' : `Confirmer & Payer $${total}`}
+                  {submitting ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 size={16} className="animate-spin" />
+                      Réservation en cours...
+                    </span>
+                  ) : `Confirmer & Payer $${total}`}
                 </button>
               </div>
             </form>

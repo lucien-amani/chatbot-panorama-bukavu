@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { reservationsApi } from '../lib/api';
+import { Bed, FileText, AlertTriangle } from 'lucide-react';
 
 const STATUT_CONFIG = {
   en_attente:  { label: 'En attente',  color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
@@ -40,10 +41,10 @@ export default function MyReservationsPage() {
       </div>
       <div className="my-reservations-inner">
         {loading && <p style={{ textAlign: 'center', padding: '40px', opacity: 0.6 }}>Chargement de vos réservations…</p>}
-        {error && <p style={{ textAlign: 'center', color: '#ef4444', padding: '20px' }}>⚠️ {error}</p>}
+        {error && <p style={{ textAlign: 'center', color: '#ef4444', padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}><AlertTriangle size={16} /> {error}</p>}
         {!loading && !error && reservations.length === 0 && (
           <div className="empty-state">
-            <div className="empty-icon">🛏️</div>
+            <div className="empty-icon" style={{ display: 'flex', justifyContent: 'center' }}><Bed size={48} strokeWidth={1} style={{ opacity: 0.3 }} /></div>
             <h2>Aucune réservation</h2>
             <p>Vous n'avez pas encore effectué de réservation.</p>
             <button className="btn-primary" onClick={() => navigate('/chambres')}>Découvrir nos chambres</button>
@@ -84,8 +85,8 @@ export default function MyReservationsPage() {
                     </div>
                   </div>
                   {res.demandes_speciales && (
-                    <div style={{ fontSize: '13px', opacity: 0.65, padding: '8px 0 0', borderTop: '1px solid var(--border)' }}>
-                      📝 {res.demandes_speciales}
+                    <div style={{ fontSize: '13px', opacity: 0.65, padding: '8px 0 0', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                      <FileText size={13} style={{ marginTop: '2px', flexShrink: 0 }} /> {res.demandes_speciales}
                     </div>
                   )}
                 </div>

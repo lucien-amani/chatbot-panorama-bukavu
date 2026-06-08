@@ -37,13 +37,12 @@ export default function LoginPage() {
       const res = await login(email, password);
       if (res.success) {
         // Redirection selon le rôle
-        const from = location.state?.from;
-        if (res.user?.est_admin || (res.user === undefined)) {
-          // Récupérer l'user depuis localStorage après login
-          const stored = JSON.parse(localStorage.getItem('panorama_user') || '{}');
-          navigate(stored?.est_admin ? '/admin' : from || '/', { replace: true });
+        const stored = JSON.parse(localStorage.getItem('panorama_user') || '{}');
+        if (stored?.est_admin) {
+          navigate('/admin', { replace: true });
         } else {
-          navigate(from || '/', { replace: true });
+          // Utilisateur classique → tableau de bord de ses réservations
+          navigate('/mes-reservations', { replace: true });
         }
       } else {
         setError(res.error);
@@ -54,8 +53,15 @@ export default function LoginPage() {
       if (password.length < 8)            return setError('Le mot de passe doit contenir au moins 8 caractères.');
       const res = await register(email, password, nom);
       if (res.success) {
-        setSuccess('Compte créé avec succès ! Bienvenue.');
-        setTimeout(() => navigate('/'), 1200);
+        setSuccess('Compte créé avec succès ! Vous pouvez maintenant vous connecter.');
+        // Déconnecter l'utilisateur auto-connecté et le rediriger vers /login
+        setTimeout(() => {
+          setIsLogin(true);
+          setPassword('');
+          setConfirmPassword('');
+          setNom('');
+          setSuccess('');
+        }, 2000);
       } else {
         setError(res.error);
       }
@@ -111,7 +117,7 @@ export default function LoginPage() {
           </div>
 
           <div className="login-form-header">
-            <h2>{isLogin ? 'Bon retour 👋' : 'Rejoindre Panorama'}</h2>
+            <h2>{isLogin ? 'Bon retour parmi nous' : 'Rejoindre Panorama'}</h2>
             <p>{isLogin ? 'Connectez-vous pour accéder à votre espace' : 'Créez votre compte client en quelques secondes'}</p>
           </div>
 

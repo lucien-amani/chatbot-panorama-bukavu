@@ -1,5 +1,10 @@
-/* ── IMPORTS DES COMPOSANTS ── */
+/* ── GOOGLE FONTS — doit précéder tailwindcss ── */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+/* ── TAILWIND CSS v4 ── */
+@import "tailwindcss";
+
+/* ── IMPORTS DES COMPOSANTS ── */
 @import './site-base.css';
 @import './site-nav.css';
 @import './site-landing.css';

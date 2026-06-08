@@ -172,3 +172,82 @@ html.dark .arc-loader { background:rgba(0,0,0,0.7); }
   .admin-sidebar { position:fixed; inset:0; right:auto; transform:translateX(-100%); width:260px; }
   .admin-sidebar.mobile-open { transform:translateX(0); }
 }
+
+/* MODERN FORM SELECTION STYLES */
+.modern-selection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+  margin-top: 6px;
+}
+.modern-type-chip {
+  background: var(--surface-hover);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  padding: 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--text-main);
+  outline: none;
+}
+.modern-type-chip:hover {
+  border-color: var(--accent-color);
+  background: var(--surface-app);
+}
+.modern-type-chip.active {
+  border-color: var(--accent-color);
+  background: rgba(157, 128, 88, 0.1);
+  box-shadow: 0 0 0 4px rgba(157, 128, 88, 0.15);
+}
+.modern-type-chip .type-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 2px;
+}
+.modern-type-chip .type-price {
+  font-size: 0.7rem;
+  color: var(--accent-color);
+  font-weight: 700;
+}
+
+.modern-status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 6px;
+}
+.modern-status-chip {
+  background: var(--surface-hover);
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-main);
+  transition: all 0.2s;
+  outline: none;
+}
+.modern-status-chip .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.modern-status-chip:hover {
+  border-color: var(--status-color);
+  background: var(--surface-app);
+}
+.modern-status-chip.active {
+  border-color: var(--status-color);
+  background: var(--status-bg-alpha);
+  box-shadow: 0 0 0 4px var(--status-bg-alpha);
+}
+
