@@ -24,14 +24,12 @@ export function AuthProvider({ children }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
-      
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erreur de connexion');
-      
       setUser(data.user);
       localStorage.setItem('panorama_user', JSON.stringify(data.user));
       localStorage.setItem('panorama_token', data.token);
-      return { success: true };
+      return { success: true, user: data.user };
     } catch (error) {
       return { success: false, error: error.message };
     } finally {

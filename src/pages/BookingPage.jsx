@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { CheckCircle, Bed, User, CreditCard, Smartphone, Lock } from 'lucide-react';
+import { chambresApi, reservationsApi } from '../lib/api';
 
 const STEPS = ['Sélection', 'Profil', 'Paiement', 'Confirmation'];
-
-const ROOM_PRICES = { 'standard': 85, 'vip-lac': 150, 'suite-junior': 220, 'suite-presidentielle': 350 };
 
 function StepIndicator({ current }) {
   return (
@@ -25,41 +24,73 @@ function StepIndicator({ current }) {
 
 export default function BookingPage() {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [litSup, setLitSup] = useState(false);
-  const [profilOk, setProfilOk] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+  const [confirmedReservation, setConfirmedReservation] = useState(null);
 
-  const typeId = searchParams.get('typeId') || 'standard';
-  const nomChambre = searchParams.get('nom') || 'Chambre Standard';
-  const prixBase = ROOM_PRICES[typeId] || 85;
+  // Données passées depuis RoomsPage via navigate state
+  const locationState = location.state || {};
+  const typeNom = locationState.type_nom || searchParams.get('nom') || 'Chambre Standard';
+  const prixBase = locationState.prix || 85;
+  // chambre_id sera cherché dynamiquement au moment de soumettre
 
   const today = new Date().toISOString().split('T')[0];
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-  const [checkin, setCheckin] = useState(searchParams.get('checkin') || today);
-  const [checkout, setCheckout] = useState(searchParams.get('checkout') || tomorrow);
-  const [voyageurs, setVoyageurs] = useState(Number(searchParams.get('voyageurs')) || 2);
+  const [checkin, setCheckin] = useState(locationState.date_arrivee || today);
+  const [checkout, setCheckout] = useState(locationState.date_depart || tomorrow);
+  const [voyageurs, setVoyageurs] = useState(2);
   const [demandesSpeciales, setDemandesSpeciales] = useState('');
-
-  // Profile fields
   const [profil, setProfil] = useState({ telephone: '', typeDoc: 'passeport', numeroDoc: '', nationalite: '', paysResidence: 'RDC' });
 
   const nuits = Math.max(1, Math.ceil((new Date(checkout) - new Date(checkin)) / 86400000));
   const prixNuit = prixBase + (litSup ? 15 : 0);
   const total = prixNuit * nuits;
 
-  const handleProfil = (e) => {
-    e.preventDefault();
-    setProfilOk(true);
-    setStep(2);
-  };
+  const handleProfil = (e) => { e.preventDefault(); setStep(2); };
 
-  const handleConfirm = (e) => {
+  const handleConfirm = async (e) => {
     e.preventDefault();
-    setConfirmed(true);
-    setStep(3);
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      // Chercher une chambre disponible du bon type
+      const disponibles = await chambresApi.disponibles({
+        date_arrivee: checkin,
+        date_depart: checkout,
+        type: locationState.type_nom,
+      });
+      const typeData = disponibles.types?.[0];
+      if (!typeData || typeData.chambres_disponibles === 0) {
+        throw new Error('Aucune chambre disponible pour ces dates. Veuillez choisir d\'autres dates.');
+      }
+      // Récupérer l'ID de chambre depuis la liste complète
+      const chambres = await chambresApi.liste();
+      const chambreLibre = chambres.find(c =>
+        c.type_chambre_id === typeData.type_id &&
+        c.statut === 'disponible'
+      );
+      if (!chambreLibre) throw new Error('Chambre introuvable.');
+
+      const resa = await reservationsApi.creer({
+        chambre_id: chambreLibre.id,
+        date_arrivee: checkin,
+        date_depart: checkout,
+        nombre_voyageurs: voyageurs,
+        demandes_speciales: demandesSpeciales || null,
+        lit_supplementaire: litSup,
+      });
+      setConfirmedReservation(resa);
+      setStep(3);
+    } catch (err) {
+      setSubmitError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (step === 3) {
@@ -72,13 +103,13 @@ export default function BookingPage() {
           <h1>Réservation Confirmée !</h1>
           <p>Merci <strong>{user?.nom_affiche}</strong>, votre réservation est bien enregistrée.</p>
           <div className="conf-details">
-            <div className="conf-row"><span>Chambre</span><strong>{nomChambre}</strong></div>
+            <div className="conf-row"><span>Chambre</span><strong>{typeNom}</strong></div>
             <div className="conf-row"><span>Arrivée</span><strong>{new Date(checkin).toLocaleDateString('fr-FR')}</strong></div>
             <div className="conf-row"><span>Départ</span><strong>{new Date(checkout).toLocaleDateString('fr-FR')}</strong></div>
             <div className="conf-row"><span>Nuits</span><strong>{nuits}</strong></div>
-            <div className="conf-row total"><span>Total payé</span><strong>${total}</strong></div>
+            <div className="conf-row total"><span>Total</span><strong>${confirmedReservation?.montant_total || total}</strong></div>
           </div>
-          <p className="conf-note">Un email de confirmation sera envoyé à <strong>{user?.email}</strong>.</p>
+          <p className="conf-note">Référence : <code>{confirmedReservation?.id?.slice(0,8).toUpperCase()}</code></p>
           <div className="conf-actions">
             <button className="btn-primary" onClick={() => navigate('/mes-reservations')}>Mes Réservations</button>
             <button className="btn-ghost" onClick={() => navigate('/')}>Retour à l'accueil</button>
@@ -221,8 +252,15 @@ export default function BookingPage() {
                 </div>
               </div>
               <div className="step-btns">
+                {submitError && (
+                  <div style={{ color: '#ef4444', background: 'rgba(239,68,68,0.1)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', width: '100%', marginBottom: '8px' }}>
+                    ⚠️ {submitError}
+                  </div>
+                )}
                 <button type="button" className="btn-ghost" onClick={() => setStep(1)}>← Retour</button>
-                <button type="submit" className="btn-primary">Confirmer & Payer ${total}</button>
+                <button type="submit" className="btn-primary" disabled={submitting}>
+                  {submitting ? '⏳ Réservation en cours…' : `Confirmer & Payer $${total}`}
+                </button>
               </div>
             </form>
           )}
@@ -231,7 +269,7 @@ export default function BookingPage() {
         {/* ── RIGHT: Summary ── */}
         <div className="booking-summary">
           <h3>Récapitulatif</h3>
-          <div className="summary-room-badge">{nomChambre}</div>
+          <div className="summary-room-badge">{typeNom}</div>
           <div className="summary-rows">
             <div className="summary-row"><span>Arrivée</span><strong>{new Date(checkin).toLocaleDateString('fr-FR')}</strong></div>
             <div className="summary-row"><span>Départ</span><strong>{new Date(checkout).toLocaleDateString('fr-FR')}</strong></div>

@@ -5,6 +5,7 @@
 @import './site-landing.css';
 @import './site-pages.css';
 @import './site-admin.css';
+@import './site-login.css';
 
 /* ── TOKENS & FONTS ── */
 :root {
@@ -48,7 +49,13 @@ html.light {
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: var(--font-sans); background: var(--bg-app); color: var(--text-main); -webkit-font-smoothing: antialiased; }
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-app);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color .35s ease, color .35s ease;
+}
 
 /* ── CHAT WIDGET ── */
 .cw-fab { position:fixed; bottom:24px; right:24px; width:60px; height:60px; border-radius:50%; background:var(--accent-color); color:var(--text-on-accent); border:none; cursor:pointer; box-shadow:0 8px 24px rgba(0,0,0,.3); display:flex; align-items:center; justify-content:center; z-index:1000; transition:all .3s cubic-bezier(.4,0,.2,1); }

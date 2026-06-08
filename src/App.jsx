@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -21,32 +21,32 @@ function ProtectedRoute({ children, adminOnly = false }) {
 }
 
 export default function App() {
+  const location = window.location.pathname; // or useLocation
   return (
     <div className="site-root">
-      <Navbar />
-      <main className="site-main">
-        <Routes>
+      <Routes>
+        {/* === ROUTES PUBLIQUES (avec Layout Public) === */}
+        <Route element={
+          <>
+            <Navbar />
+            <main className="site-main"><Outlet /></main>
+            <Footer />
+            <ChatWidget />
+            <MobileBottomNav />
+          </>
+        }>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/chambres" element={<RoomsPage />} />
-          <Route path="/reservation" element={
-            <ProtectedRoute><BookingPage /></ProtectedRoute>
-          } />
-          <Route path="/profil" element={
-            <ProtectedRoute><ProfilePage /></ProtectedRoute>
-          } />
-          <Route path="/mes-reservations" element={
-            <ProtectedRoute><MyReservationsPage /></ProtectedRoute>
-          } />
-          <Route path="/admin/*" element={
-            <ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>
-          } />
+          <Route path="/reservation" element={<ProtectedRoute><BookingPage /></ProtectedRoute>} />
+          <Route path="/profil" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          <Route path="/mes-reservations" element={<ProtectedRoute><MyReservationsPage /></ProtectedRoute>} />
           <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </main>
-      <Footer />
-      <ChatWidget />
-      <MobileBottomNav />
+        </Route>
+
+        {/* === ROUTE ADMIN (sans Layout Public) === */}
+        <Route path="/admin/*" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
+      </Routes>
     </div>
   );
 }

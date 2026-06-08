@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const MenuIcon = () => (
   <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -13,6 +14,19 @@ const XIcon = () => (
   </svg>
 );
 
+const SunIcon = () => (
+  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <circle cx="12" cy="12" r="4" />
+    <path strokeLinecap="round" d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+  </svg>
+);
+
+const MoonIcon = () => (
+  <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+  </svg>
+);
+
 const NAV_LINKS = [
   { to: '/', label: 'Accueil', exact: true },
   { to: '/chambres', label: 'Chambres' },
@@ -21,6 +35,7 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -64,6 +79,21 @@ export default function Navbar() {
             <Link to="/chambres" className="navbar-cta">
               Réserver
             </Link>
+
+            {/* Theme Toggle */}
+            <button
+              id="theme-toggle-btn"
+              className="navbar-theme-toggle"
+              onClick={toggleTheme}
+              title={isDark ? 'Passer en mode clair' : 'Passer en mode sombre'}
+              aria-label="Changer de thème"
+            >
+              <span className={`theme-toggle-track ${isDark ? 'dark' : 'light'}`}>
+                <span className="theme-toggle-thumb">
+                  {isDark ? <MoonIcon /> : <SunIcon />}
+                </span>
+              </span>
+            </button>
 
             {user ? (
               <div className="navbar-user-wrap">
@@ -122,6 +152,23 @@ export default function Navbar() {
             {user && (
               <button className="navbar-mobile-link logout" onClick={() => { logout(); setMobileOpen(false); }}>Déconnexion</button>
             )}
+            {/* Theme toggle dans le menu mobile */}
+            <div className="navbar-mobile-theme-row">
+              <span className="navbar-mobile-theme-label">
+                {isDark ? '🌙 Mode sombre' : '☀️ Mode clair'}
+              </span>
+              <button
+                className="navbar-theme-toggle"
+                onClick={toggleTheme}
+                aria-label="Changer de thème"
+              >
+                <span className={`theme-toggle-track ${isDark ? 'dark' : 'light'}`}>
+                  <span className="theme-toggle-thumb">
+                    {isDark ? <MoonIcon /> : <SunIcon />}
+                  </span>
+                </span>
+              </button>
+            </div>
           </div>
         )}
       </nav>

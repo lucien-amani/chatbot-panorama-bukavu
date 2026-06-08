@@ -1,5 +1,5 @@
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -8,18 +8,18 @@ generator client {
 }
 
 model Utilisateur {
-  id             String    @id @default(cuid())
-  email          String    @unique
-  password_hash  String
-  nom_affiche    String
-  url_avatar     String?
-  est_admin      Boolean   @default(false)
-  created_at     DateTime  @default(now())
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password_hash String
+  nom_affiche   String
+  url_avatar    String?
+  est_admin     Boolean  @default(false)
+  created_at    DateTime @default(now())
 
-  profil             Profil?
-  reservations       Reservation[]
-  commandes          Commande[]
-  journaux_chat      JournalChat[]
+  profil        Profil?
+  reservations  Reservation[]
+  commandes     Commande[]
+  journaux_chat JournalChat[]
 }
 
 model Profil {
@@ -34,13 +34,13 @@ model Profil {
 }
 
 model TypeChambre {
-  id               String     @id @default(cuid())
-  nom              String     @unique
+  id               String    @id @default(cuid())
+  nom              String    @unique
   description      String?
   prix_base_nuit   Float
   capacite_adultes Int
   capacite_enfants Int
-  equipements      String?    // JSON stringified
+  equipements      String?   // JSON stringified array
 
   chambres         Chambre[]
 }
@@ -56,18 +56,22 @@ model Chambre {
 
   lignes_reservation LigneReservation[]
   commandes          Commande[]
+
+  @@index([statut])
+  @@index([type_chambre_id])
 }
 
 model Reservation {
-  id                 String             @id @default(cuid())
+  id                 String   @id @default(cuid())
   utilisateur_id     String
-  utilisateur        Utilisateur        @relation(fields: [utilisateur_id], references: [id], onDelete: Restrict)
-  statut             String             // "en_attente" | "confirmee" | "payee" | "en_sejour" | "terminee" | "annulee"
+  utilisateur        Utilisateur @relation(fields: [utilisateur_id], references: [id], onDelete: Restrict)
+  statut             String   // "en_attente" | "confirmee" | "payee" | "en_sejour" | "terminee" | "annulee"
   montant_total      Float?
   date_arrivee       DateTime
   date_depart        DateTime
   nombre_voyageurs   Int?
   demandes_speciales String?
+  created_at         DateTime @default(now())
 
   lignes_reservation LigneReservation[]
   commandes          Commande[]
@@ -107,17 +111,18 @@ model Plat {
 }
 
 model Commande {
-  id             String       @id @default(cuid())
+  id             String      @id @default(cuid())
   utilisateur_id String
-  utilisateur    Utilisateur  @relation(fields: [utilisateur_id], references: [id], onDelete: Restrict)
+  utilisateur    Utilisateur @relation(fields: [utilisateur_id], references: [id], onDelete: Restrict)
   reservation_id String?
   reservation    Reservation? @relation(fields: [reservation_id], references: [id], onDelete: SetNull)
   chambre_id     String?
-  chambre        Chambre?     @relation(fields: [chambre_id], references: [id], onDelete: SetNull)
-  type_commande  String       // "room_service" | "restaurant" | "blanchisserie" | "navette"
-  statut         String       // "en_attente" | "en_preparation" | "prete" | "livree" | "terminee" | "annulee"
+  chambre        Chambre?    @relation(fields: [chambre_id], references: [id], onDelete: SetNull)
+  type_commande  String      // "room_service" | "restaurant" | "blanchisserie" | "navette"
+  statut         String      // "en_attente" | "en_preparation" | "prete" | "livree" | "terminee" | "annulee"
   montant_total  Float?
   notes          String?
+  created_at     DateTime    @default(now())
 
   lignes_commande LigneCommande[]
   notifications   Notification[]
@@ -145,27 +150,29 @@ model LigneCommande {
 }
 
 model JournalChat {
-  id             String       @id @default(cuid())
+  id             String      @id @default(cuid())
   utilisateur_id String?
   utilisateur    Utilisateur? @relation(fields: [utilisateur_id], references: [id], onDelete: SetNull)
   session_id     String
-  role           String       // "utilisateur" | "assistant" | "fonction"
-  contenu        String
+  role           String      // "utilisateur" | "assistant" | "fonction"
+  contenu        String      @db.Text
   nom_fonction   String?
+  created_at     DateTime    @default(now())
 
   @@index([session_id])
   @@index([utilisateur_id])
 }
 
 model Notification {
-  id             String       @id @default(cuid())
+  id             String      @id @default(cuid())
   commande_id    String?
-  commande       Commande?    @relation(fields: [commande_id], references: [id], onDelete: SetNull)
+  commande       Commande?   @relation(fields: [commande_id], references: [id], onDelete: SetNull)
   reservation_id String?
   reservation    Reservation? @relation(fields: [reservation_id], references: [id], onDelete: SetNull)
-  type           String       // "nouvelle_commande" | "commande_prete" | "arrivee_aujourd_hui" | "nettoyage_chambre"
+  type           String      // "nouvelle_commande" | "commande_prete" | "arrivee_aujourd_hui" | "nettoyage_chambre"
   message        String
-  est_lue        Boolean      @default(false)
+  est_lue        Boolean     @default(false)
+  created_at     DateTime    @default(now())
 
   @@index([type])
   @@index([est_lue])

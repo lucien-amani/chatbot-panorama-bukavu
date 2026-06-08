@@ -53,3 +53,14 @@
 
 /* ── AMENITY TAG ── */
 .amenity-tag { display:inline-flex; background:var(--surface-hover); border:1px solid var(--border-color); color:var(--text-muted); border-radius:6px; padding:.2rem .6rem; font-size:.72rem; font-weight:600; }
+
+/* ── LIGHT MODE OVERRIDES ── */
+html.light .page-hero-sm {
+  background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%);
+}
+html.light .page-hero-sm-overlay {
+  background: linear-gradient(135deg, rgba(30,58,95,.12), rgba(0,0,0,.06));
+}
+html.light .page-hero-sm-content h1 { color: var(--text-main); }
+html.light .page-hero-sm-content p { color: var(--text-muted); }
+

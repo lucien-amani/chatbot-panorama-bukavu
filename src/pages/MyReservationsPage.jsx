@@ -1,10 +1,6 @@
-import { useState } from 'react';
-
-const MOCK_RESERVATIONS = [
-  { id: 'RES-001', chambre: 'VIP Vue Lac Kivu', arrivee: '2026-06-10', depart: '2026-06-14', nuits: 4, total: 600, statut: 'confirmee' },
-  { id: 'RES-002', chambre: 'Chambre Standard', arrivee: '2026-07-01', depart: '2026-07-03', nuits: 2, total: 170, statut: 'en_attente' },
-  { id: 'RES-003', chambre: 'Suite Présidentielle', arrivee: '2026-01-15', depart: '2026-01-18', nuits: 3, total: 1050, statut: 'terminee' },
-];
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { reservationsApi } from '../lib/api';
 
 const STATUT_CONFIG = {
   en_attente:  { label: 'En attente',  color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
@@ -17,15 +13,21 @@ const STATUT_CONFIG = {
 
 function StatutBadge({ statut }) {
   const cfg = STATUT_CONFIG[statut] || STATUT_CONFIG.en_attente;
-  return (
-    <span className="statut-badge" style={{ color: cfg.color, background: cfg.bg }}>
-      {cfg.label}
-    </span>
-  );
+  return <span className="statut-badge" style={{ color: cfg.color, background: cfg.bg }}>{cfg.label}</span>;
 }
 
 export default function MyReservationsPage() {
-  const [reservations] = useState(MOCK_RESERVATIONS);
+  const navigate = useNavigate();
+  const [reservations, setReservations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    reservationsApi.mesReservations()
+      .then(setReservations)
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <div className="page-content">
@@ -37,51 +39,58 @@ export default function MyReservationsPage() {
         </div>
       </div>
       <div className="my-reservations-inner">
-        {reservations.length === 0 ? (
+        {loading && <p style={{ textAlign: 'center', padding: '40px', opacity: 0.6 }}>Chargement de vos réservations…</p>}
+        {error && <p style={{ textAlign: 'center', color: '#ef4444', padding: '20px' }}>⚠️ {error}</p>}
+        {!loading && !error && reservations.length === 0 && (
           <div className="empty-state">
             <div className="empty-icon">🛏️</div>
             <h2>Aucune réservation</h2>
             <p>Vous n'avez pas encore effectué de réservation.</p>
-            <a href="/chambres" className="btn-primary">Découvrir nos chambres</a>
+            <button className="btn-primary" onClick={() => navigate('/chambres')}>Découvrir nos chambres</button>
           </div>
-        ) : (
+        )}
+        {!loading && reservations.length > 0 && (
           <div className="reservations-list">
-            {reservations.map(res => (
-              <div key={res.id} className="reservation-card">
-                <div className="res-card-header">
-                  <div>
-                    <div className="res-id">Réservation #{res.id}</div>
-                    <h3 className="res-chambre">{res.chambre}</h3>
+            {reservations.map(res => {
+              const chambre = res.lignes_reservation?.[0]?.chambre;
+              const nuits = Math.ceil((new Date(res.date_depart) - new Date(res.date_arrivee)) / 86400000);
+              return (
+                <div key={res.id} className="reservation-card">
+                  <div className="res-card-header">
+                    <div>
+                      <div className="res-id">#{res.id.slice(0, 8).toUpperCase()}</div>
+                      <h3 className="res-chambre">{chambre?.type_chambre?.nom || 'Chambre'} — N° {chambre?.numero_chambre || '?'}</h3>
+                    </div>
+                    <StatutBadge statut={res.statut} />
                   </div>
-                  <StatutBadge statut={res.statut} />
+                  <div className="res-card-details">
+                    <div className="res-detail">
+                      <span className="rd-label">Arrivée</span>
+                      <span className="rd-value">{new Date(res.date_arrivee).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                    </div>
+                    <div className="res-detail-arrow">→</div>
+                    <div className="res-detail">
+                      <span className="rd-label">Départ</span>
+                      <span className="rd-value">{new Date(res.date_depart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                    </div>
+                    <div className="res-detail-sep" />
+                    <div className="res-detail">
+                      <span className="rd-label">Durée</span>
+                      <span className="rd-value">{nuits} nuit{nuits > 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="res-detail">
+                      <span className="rd-label">Total</span>
+                      <span className="rd-value rd-total">${res.montant_total || 0}</span>
+                    </div>
+                  </div>
+                  {res.demandes_speciales && (
+                    <div style={{ fontSize: '13px', opacity: 0.65, padding: '8px 0 0', borderTop: '1px solid var(--border)' }}>
+                      📝 {res.demandes_speciales}
+                    </div>
+                  )}
                 </div>
-                <div className="res-card-details">
-                  <div className="res-detail">
-                    <span className="rd-label">Arrivée</span>
-                    <span className="rd-value">{new Date(res.arrivee).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-                  </div>
-                  <div className="res-detail-arrow">→</div>
-                  <div className="res-detail">
-                    <span className="rd-label">Départ</span>
-                    <span className="rd-value">{new Date(res.depart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-                  </div>
-                  <div className="res-detail-sep" />
-                  <div className="res-detail">
-                    <span className="rd-label">Durée</span>
-                    <span className="rd-value">{res.nuits} nuit{res.nuits > 1 ? 's' : ''}</span>
-                  </div>
-                  <div className="res-detail">
-                    <span className="rd-label">Total</span>
-                    <span className="rd-value rd-total">${res.total}</span>
-                  </div>
-                </div>
-                {res.statut === 'en_attente' && (
-                  <div className="res-card-actions">
-                    <button className="btn-danger-sm">Annuler</button>
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
