@@ -53,6 +53,7 @@ model Chambre {
   etage           Int?
   statut          String      // "disponible" | "occupee" | "nettoyage" | "maintenance"
   notes           String?
+  image_url       String?     // Image personnalisée de la chambre
 
   lignes_reservation LigneReservation[]
   commandes          Commande[]

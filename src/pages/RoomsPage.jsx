@@ -12,7 +12,7 @@ const CATEGORIE_LABELS = {
 
 export default function RoomsPage() {
   const navigate = useNavigate();
-  const [types, setTypes] = useState([]);
+  const [chambres, setChambres] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dateArrivee, setDateArrivee] = useState('');
@@ -21,8 +21,9 @@ export default function RoomsPage() {
   const [checkLoading, setCheckLoading] = useState(false);
 
   useEffect(() => {
-    chambresApi.types()
-      .then(setTypes)
+    // Récupérer la liste des 14 chambres individuelles
+    chambresApi.liste()
+      .then(setChambres)
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
@@ -40,42 +41,60 @@ export default function RoomsPage() {
     }
   };
 
-  const afficherTypes = disponibilite ? disponibilite.types : types;
-
   const today = new Date().toISOString().split('T')[0];
+
+  // Si on a vérifié la disponibilité, on marque les chambres
+  const chambresAffichees = chambres.map(c => {
+    let isAvailable = true; // par défaut
+    if (disponibilite && disponibilite.chambres_ids) {
+      isAvailable = disponibilite.chambres_ids.includes(c.id);
+    } else {
+      isAvailable = c.statut === 'disponible';
+    }
+    return { ...c, isAvailable };
+  });
 
   return (
     <div className="page-rooms">
       <div className="rooms-hero">
-        <h1>Nos Chambres & Suites</h1>
-        <p>Découvrez notre collection d'hébergements avec vue sur le lac Kivu</p>
+        <h1>Élégance & Confort</h1>
+        <p>Découvrez notre collection exclusive d'hébergements avec vue imprenable sur le lac Kivu.</p>
       </div>
 
       {/* Vérificateur de disponibilité */}
       <div className="availability-checker">
-        <h2>Vérifier les disponibilités</h2>
         <div className="avail-form">
           <div className="avail-field">
             <label>Date d'arrivée</label>
-            <input type="date" min={today} value={dateArrivee}
-              onChange={e => { setDateArrivee(e.target.value); setDisponibilite(null); }} />
+            <input 
+              type="date" 
+              className="modern-date-input" 
+              min={today} 
+              value={dateArrivee}
+              onChange={e => { setDateArrivee(e.target.value); setDisponibilite(null); }} 
+            />
           </div>
           <div className="avail-field">
             <label>Date de départ</label>
-            <input type="date" min={dateArrivee || today} value={dateDepart}
-              onChange={e => { setDateDepart(e.target.value); setDisponibilite(null); }} />
+            <input 
+              type="date" 
+              className="modern-date-input" 
+              min={dateArrivee || today} 
+              value={dateDepart}
+              onChange={e => { setDateDepart(e.target.value); setDisponibilite(null); }} 
+            />
           </div>
           <button className="avail-btn" onClick={verifierDisponibilite}
             disabled={!dateArrivee || !dateDepart || checkLoading}>
-            {checkLoading ? 'Recherche…' : '🔍 Vérifier'}
+            {checkLoading ? 'Recherche…' : 'Vérifier la disponibilité'}
           </button>
         </div>
         {disponibilite && (
           <div className="avail-result">
             <span className={disponibilite.total_disponibles > 0 ? 'avail-ok' : 'avail-none'}>
               {disponibilite.total_disponibles > 0
-                ? `✅ ${disponibilite.total_disponibles} chambre(s) disponible(s) pour ces dates`
-                : '❌ Aucune chambre disponible pour ces dates'}
+                ? `✨ ${disponibilite.total_disponibles} chambre(s) disponible(s) pour votre séjour`
+                : 'Malheureusement, aucune chambre n\'est disponible pour ces dates.'}
             </span>
           </div>
         )}
@@ -88,57 +107,77 @@ export default function RoomsPage() {
       )}
 
       {loading ? (
-        <div className="rooms-loading">
+        <div className="rooms-loading" style={{ textAlign: 'center', padding: '4rem 0' }}>
           <div className="rooms-spinner" />
-          <p>Chargement des chambres…</p>
+          <p style={{ color: 'var(--text-muted)' }}>Chargement de nos suites…</p>
         </div>
       ) : (
         <div className="rooms-grid">
-          {afficherTypes.map(t => {
+          {chambresAffichees.map((c, index) => {
+            const t = c.type_chambre;
+            if (!t) return null;
             const equipements = Array.isArray(t.equipements)
               ? t.equipements
               : (() => { try { return JSON.parse(t.equipements || '[]'); } catch { return []; } })();
-            const dispo = disponibilite
-              ? (t.chambres_disponibles || 0)
-              : (t.chambres_disponibles || 0);
-            const isAvailable = dispo > 0;
+            
+            const isAvailable = c.isAvailable;
+            
+            // On utilise l'image en ligne personnalisée, sinon on fallback
+            const fallbackImages = [
+              'https://images.unsplash.com/photo-1611892440504-42a792e24d32?q=80&w=800&auto=format&fit=crop',
+              'https://images.unsplash.com/photo-1582719478250-c89404bb8a0e?q=80&w=800&auto=format&fit=crop',
+              'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?q=80&w=800&auto=format&fit=crop',
+              'https://images.unsplash.com/photo-1618773928121-c32242e63f39?q=80&w=800&auto=format&fit=crop'
+            ];
+            const imgSrc = c.image_url || fallbackImages[index % fallbackImages.length];
 
             return (
-              <div key={t.id} className={`room-card ${!isAvailable && disponibilite ? 'room-unavailable' : ''}`}>
+              <div key={c.id} className="room-card">
                 <div className="room-card-img-wrap">
-                  <div className="room-card-img-placeholder">
-                    <span>🏨</span>
+                  <img src={imgSrc} alt={`Chambre ${c.numero_chambre}`} className="room-card-img" />
+                  <div className={`room-avail-badge ${isAvailable ? 'avail-yes' : 'avail-no'}`}>
+                    {isAvailable ? 'Disponible' : 'Occupée'}
                   </div>
-                  {disponibilite && (
-                    <div className={`room-avail-badge ${isAvailable ? 'avail-yes' : 'avail-no'}`}>
-                      {isAvailable ? `${dispo} dispo` : 'Complet'}
-                    </div>
-                  )}
                 </div>
+                
                 <div className="room-card-body">
                   <div className="room-card-header">
-                    <h3>{t.nom}</h3>
+                    <div>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--accent-color)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Chambre {c.numero_chambre} {c.etage ? `(Étage ${c.etage})` : ''}
+                      </span>
+                      <h3>{t.nom}</h3>
+                    </div>
                     <div className="room-price">
                       <span className="price-amount">${t.prix_base_nuit}</span>
                       <span className="price-night">/nuit</span>
                     </div>
                   </div>
+                  
                   <p className="room-description">{t.description}</p>
-                  <div className="room-capacity">
-                    👥 {t.capacite_adultes} adulte{t.capacite_adultes > 1 ? 's' : ''}
-                    {t.capacite_enfants > 0 && ` + ${t.capacite_enfants} enfant${t.capacite_enfants > 1 ? 's' : ''}`}
+                  
+                  <div className="room-details-row">
+                    <div className="room-detail-item">
+                      <span className="room-detail-icon">👥</span>
+                      {t.capacite_adultes} Adulte{t.capacite_adultes > 1 ? 's' : ''}
+                      {t.capacite_enfants > 0 && ` & ${t.capacite_enfants} Enfant${t.capacite_enfants > 1 ? 's' : ''}`}
+                    </div>
                   </div>
+                  
                   <div className="room-amenities">
                     {equipements.slice(0, 4).map((eq, i) => (
                       <span key={i} className="amenity-tag">{eq}</span>
                     ))}
                     {equipements.length > 4 && <span className="amenity-tag">+{equipements.length - 4}</span>}
                   </div>
+                  
                   <button
                     className="room-book-btn"
-                    disabled={disponibilite && !isAvailable}
+                    disabled={!isAvailable}
                     onClick={() => navigate('/reservation', {
                       state: {
+                        chambre_id: c.id,
+                        numero_chambre: c.numero_chambre,
                         type_id: t.id,
                         type_nom: t.nom,
                         prix: t.prix_base_nuit,
@@ -147,7 +186,7 @@ export default function RoomsPage() {
                       }
                     })}
                   >
-                    {disponibilite && !isAvailable ? 'Indisponible' : 'Réserver maintenant'}
+                    {!isAvailable ? 'Indisponible' : 'Réserver cette chambre'}
                   </button>
                 </div>
               </div>

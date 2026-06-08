@@ -167,7 +167,13 @@ app.get('/api/chambres', async (req, res) => {
     const where = statut ? { statut } : {};
     const chambres = await prisma.chambre.findMany({
       where,
-      include: { type_chambre: true },
+      include: { 
+        type_chambre: true,
+        lignes_reservation: {
+          where: { reservation: { statut: 'en_sejour' } },
+          include: { reservation: { include: { utilisateur: true } } }
+        }
+      },
       orderBy: [{ etage: 'asc' }, { numero_chambre: 'asc' }],
     });
     res.json(chambres);
@@ -234,6 +240,7 @@ app.get('/api/chambres/disponibles', async (req, res) => {
       date_arrivee: date_arrivee || null,
       date_depart: date_depart || null,
       total_disponibles: chambresDisponibles.length,
+      chambres_ids: chambresDisponibles.map(c => c.id),
       types: Object.values(parType),
     });
   } catch (e) {
@@ -270,6 +277,49 @@ app.patch('/api/admin/chambres/:id/statut', adminMiddleware, async (req, res) =>
     const chambre = await prisma.chambre.update({
       where: { id: req.params.id },
       data: { statut },
+      include: { type_chambre: true },
+    });
+    res.json(chambre);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Créer une nouvelle chambre
+app.post('/api/admin/chambres', adminMiddleware, async (req, res) => {
+  try {
+    const { numero_chambre, type_chambre_id, etage, statut, notes, image_url } = req.body;
+    const chambre = await prisma.chambre.create({
+      data: {
+        numero_chambre,
+        type_chambre_id,
+        etage: etage ? parseInt(etage) : null,
+        statut: statut || 'disponible',
+        notes: notes || null,
+        image_url: image_url || null,
+      },
+      include: { type_chambre: true },
+    });
+    res.status(201).json(chambre);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Modifier une chambre existante
+app.put('/api/admin/chambres/:id', adminMiddleware, async (req, res) => {
+  try {
+    const { numero_chambre, type_chambre_id, etage, statut, notes, image_url } = req.body;
+    const chambre = await prisma.chambre.update({
+      where: { id: req.params.id },
+      data: {
+        numero_chambre,
+        type_chambre_id,
+        etage: etage !== undefined ? parseInt(etage) : undefined,
+        statut,
+        notes,
+        image_url,
+      },
       include: { type_chambre: true },
     });
     res.json(chambre);

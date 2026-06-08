@@ -167,7 +167,306 @@ function VueDashboard() {
   );
 }
 
-/* ── 2. Vue Utilisateurs ── */
+/* ── 2. Vue Réservations ── */
+function VueReservations() {
+  const [reservations, setReservations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(null);
+
+  const charger = useCallback(async () => {
+    try {
+      const data = await reservationsApi.liste(null, 100);
+      setReservations(data);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    charger();
+    const intervalId = setInterval(charger, 15000); // 15s sync
+    return () => clearInterval(intervalId);
+  }, [charger]);
+
+  const changerStatut = async (id, statut) => {
+    setUpdating(id);
+    try {
+      await reservationsApi.changerStatut(id, statut);
+      setReservations(prev => prev.map(r => r.id === id ? { ...r, statut } : r));
+    } catch (e) { alert(e.message); }
+    finally { setUpdating(null); }
+  };
+
+  return (
+    <div className="admin-view">
+      <div className="dashboard-widget full">
+        <div className="widget-header">
+          <h2>Gestion des Réservations</h2>
+          <span className="admin-count">{reservations.length} réservations</span>
+        </div>
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>Chambre</th>
+                <th>Arrivée</th>
+                <th>Départ</th>
+                <th>Total</th>
+                <th>Statut</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && reservations.length===0 ? <tr><td colSpan="7">Chargement...</td></tr> : 
+                reservations.length === 0 ? <tr><td colSpan="7" style={{ textAlign: 'center', opacity: 0.5 }}>Aucune réservation trouvée</td></tr> :
+                reservations.map(r => (
+                  <tr key={r.id}>
+                    <td style={{ fontWeight: 600 }}>{r.utilisateur?.nom_affiche || r.utilisateur?.email || 'Inconnu'}</td>
+                    <td style={{ color: 'var(--text-muted)' }}>{r.lignes_reservation?.[0]?.chambre?.numero_chambre || '—'} ({r.lignes_reservation?.[0]?.chambre?.type_chambre?.nom || '—'})</td>
+                    <td>{new Date(r.date_arrivee).toLocaleDateString('fr-FR')}</td>
+                    <td>{new Date(r.date_depart).toLocaleDateString('fr-FR')}</td>
+                    <td style={{ fontWeight: 800, color: 'var(--text-main)' }}>{fmt(r.montant_total)}</td>
+                    <td><StatutBadge statut={r.statut} /></td>
+                    <td>
+                      <select 
+                        value={r.statut} 
+                        onChange={(e) => changerStatut(r.id, e.target.value)}
+                        disabled={updating === r.id}
+                        className="admin-select-statut"
+                      >
+                        <option value="en_attente">En attente</option>
+                        <option value="confirmee">Confirmée</option>
+                        <option value="payee">Payée</option>
+                        <option value="en_sejour">En séjour</option>
+                        <option value="terminee">Terminée</option>
+                        <option value="annulee">Annulée</option>
+                      </select>
+                      {updating === r.id && <span style={{ marginLeft: '8px', fontSize: '12px' }}>⏳</span>}
+                    </td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── 3. Vue Chambres ── */
+function VueChambres() {
+  const [chambres, setChambres] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(null);
+  const [chambreModale, setChambreModale] = useState(null); // null = fermée, {} = nouvelle, ou objet chambre
+  const [typesChambres, setTypesChambres] = useState([]);
+
+  const chargerTypes = useCallback(async () => {
+    try { const t = await chambresApi.types(); setTypesChambres(t); } catch(e){}
+  }, []);
+
+  const charger = useCallback(async () => {
+    try {
+      const data = await chambresApi.liste();
+      setChambres(data);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    charger();
+    chargerTypes();
+    const intervalId = setInterval(charger, 15000); // 15s sync
+    return () => clearInterval(intervalId);
+  }, [charger, chargerTypes]);
+
+  const changerStatut = async (id, statut) => {
+    setUpdating(id);
+    try {
+      await chambresApi.changerStatut(id, statut);
+      setChambres(prev => prev.map(ch => ch.id === id ? { ...ch, statut } : ch));
+    } catch (e) { alert(e.message); }
+    finally { setUpdating(null); }
+  };
+
+  const sauvegarderChambre = async (e) => {
+    e.preventDefault();
+    const form = new FormData(e.target);
+    const data = {
+      numero_chambre: form.get('numero_chambre'),
+      type_chambre_id: form.get('type_chambre_id'),
+      etage: form.get('etage'),
+      statut: form.get('statut') || 'disponible',
+      notes: form.get('notes'),
+      image_url: form.get('image_url')
+    };
+
+    try {
+      if (chambreModale.id) {
+        await chambresApi.modifier(chambreModale.id, data);
+      } else {
+        await chambresApi.ajouter(data);
+      }
+      setChambreModale(null);
+      charger(); // Recharger la liste complète
+    } catch (err) {
+      alert("Erreur lors de la sauvegarde : " + err.message);
+    }
+  };
+
+  // Grouper par étage
+  const etages = chambres.reduce((acc, ch) => {
+    const etage = ch.etage || 1;
+    if (!acc[etage]) acc[etage] = [];
+    acc[etage].push(ch);
+    return acc;
+  }, {});
+  
+  // Trier les étages
+  const etagesTries = Object.keys(etages).sort((a,b) => Number(a) - Number(b));
+
+  return (
+    <div className="admin-view">
+      <div className="admin-view-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)' }}>Gestion des Chambres</h1>
+          <span className="admin-count">{chambres.length} chambres au total</span>
+        </div>
+        <button className="rsb-btn" onClick={() => setChambreModale({})}>
+          + Ajouter une Chambre
+        </button>
+      </div>
+
+      {loading && chambres.length === 0 ? <p style={{ opacity: 0.5 }}>Chargement de la cartographie...</p> : 
+        etagesTries.map(etage => (
+          <div key={etage} className="dashboard-widget full" style={{ marginBottom: '24px' }}>
+            <div className="widget-header">
+              <h2>Étage {etage}</h2>
+            </div>
+            <div className="admin-rooms-grid">
+              {etages[etage].map(ch => {
+                const isOccupiedByReservation = ch.lignes_reservation?.length > 0;
+                const occupant = isOccupiedByReservation ? ch.lignes_reservation[0].reservation.utilisateur : null;
+                
+                return (
+                  <div key={ch.id} className={`admin-room-card status-${ch.statut}`}>
+                    <div className="arc-header">
+                      <span className="arc-numero">{ch.numero_chambre}</span>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <button 
+                          onClick={() => setChambreModale(ch)} 
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', opacity: 0.6 }}
+                          title="Modifier la chambre"
+                        >
+                          ✏️
+                        </button>
+                        <StatutBadge statut={ch.statut} />
+                      </div>
+                    </div>
+                    <div className="arc-body">
+                      <div className="arc-type">{ch.type_chambre?.nom}</div>
+                      {isOccupiedByReservation && occupant && (
+                        <div style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: 700, marginTop: '4px' }}>
+                          👤 Occupée par {occupant.nom_affiche || occupant.email}
+                        </div>
+                      )}
+                      {ch.notes && <div className="arc-notes">📝 {ch.notes}</div>}
+                    </div>
+                    <div className="arc-actions">
+                      {isOccupiedByReservation ? (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '8px', textAlign: 'center' }}>
+                          Statut géré par la réservation
+                        </div>
+                      ) : (
+                        <select 
+                          value={ch.statut} 
+                          onChange={(e) => changerStatut(ch.id, e.target.value)}
+                          disabled={updating === ch.id}
+                          className="admin-select-statut"
+                          style={{ width: '100%', marginTop: '8px' }}
+                        >
+                          <option value="disponible">Disponible</option>
+                          <option value="occupee">Occupée</option>
+                          <option value="nettoyage">En nettoyage</option>
+                          <option value="maintenance">En maintenance</option>
+                        </select>
+                      )}
+                    </div>
+                    {updating === ch.id && <div className="arc-loader">Mise à jour...</div>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))
+      }
+
+      {/* MODALE AJOUT/MODIFICATION CHAMBRE */}
+      {chambreModale !== null && (
+        <div className="admin-modal-overlay" onClick={() => setChambreModale(null)}>
+          <div className="admin-modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className="admin-modal-header">
+              <h2>{chambreModale.id ? `Modifier Chambre ${chambreModale.numero_chambre}` : 'Nouvelle Chambre'}</h2>
+              <button onClick={() => setChambreModale(null)}><X size={20} /></button>
+            </div>
+            <form onSubmit={sauvegarderChambre}>
+              <div className="admin-modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div className="rsb-field">
+                    <label>Numéro de chambre</label>
+                    <input type="text" name="numero_chambre" defaultValue={chambreModale.numero_chambre} required />
+                  </div>
+                  <div className="rsb-field">
+                    <label>Étage (numéro)</label>
+                    <input type="number" name="etage" defaultValue={chambreModale.etage} />
+                  </div>
+                </div>
+                
+                <div className="rsb-field">
+                  <label>Type de Chambre</label>
+                  <select name="type_chambre_id" defaultValue={chambreModale.type_chambre_id} required>
+                    <option value="">Sélectionner un type...</option>
+                    {typesChambres.map(t => (
+                      <option key={t.id} value={t.id}>{t.nom} (${t.prix_base_nuit})</option>
+                    ))}
+                  </select>
+                </div>
+
+                {!chambreModale.id && (
+                  <div className="rsb-field">
+                    <label>Statut initial</label>
+                    <select name="statut" defaultValue="disponible">
+                      <option value="disponible">Disponible</option>
+                      <option value="nettoyage">En nettoyage</option>
+                      <option value="maintenance">En maintenance</option>
+                    </select>
+                  </div>
+                )}
+
+                <div className="rsb-field">
+                  <label>URL de l'image (optionnel, affichée publiquement)</label>
+                  <input type="url" name="image_url" defaultValue={chambreModale.image_url} placeholder="https://..." />
+                </div>
+
+                <div className="rsb-field">
+                  <label>Notes (privé, ex: Réparation Clim)</label>
+                  <textarea name="notes" defaultValue={chambreModale.notes} style={{ background: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: '9px', padding: '10px', color: 'var(--text-main)', minHeight: '80px', outline: 'none' }}></textarea>
+                </div>
+              </div>
+              <div className="admin-modal-footer">
+                <button type="button" className="room-book-btn" style={{ width: 'auto', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-main)' }} onClick={() => setChambreModale(null)}>Annuler</button>
+                <button type="submit" className="room-book-btn" style={{ width: 'auto', padding: '0.6rem 1.5rem' }}>Sauvegarder</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── 4. Vue Utilisateurs ── */
 function VueUtilisateurs() {
   const [utilisateurs, setUtilisateurs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -211,6 +510,99 @@ function VueUtilisateurs() {
                       }
                     </td>
                     <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{new Date(u.created_at).toLocaleDateString('fr-FR')}</td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── 5. Vue Commandes ── */
+function VueCommandes() {
+  const [commandes, setCommandes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(null);
+
+  const charger = useCallback(async () => {
+    try {
+      const data = await commandesApi.liste();
+      setCommandes(data);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    charger();
+    const intervalId = setInterval(charger, 10000); // 10s sync pour les commandes, car c'est critique (restaurant/room service)
+    return () => clearInterval(intervalId);
+  }, [charger]);
+
+  const changerStatut = async (id, statut) => {
+    setUpdating(id);
+    try {
+      await commandesApi.changerStatut(id, statut);
+      setCommandes(prev => prev.map(c => c.id === id ? { ...c, statut } : c));
+    } catch (e) { alert(e.message); }
+    finally { setUpdating(null); }
+  };
+
+  return (
+    <div className="admin-view">
+      <div className="dashboard-widget full">
+        <div className="widget-header">
+          <h2>Room Service & Restaurant</h2>
+          <span className="admin-count">{commandes.length} commandes en cours</span>
+        </div>
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Heure</th>
+                <th>Chambre & Client</th>
+                <th>Commande</th>
+                <th>Total</th>
+                <th>Statut</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && commandes.length===0 ? <tr><td colSpan="6">Chargement...</td></tr> : 
+                commandes.length === 0 ? <tr><td colSpan="6" style={{ textAlign: 'center', opacity: 0.5 }}>Aucune commande en cours</td></tr> :
+                commandes.map(c => (
+                  <tr key={c.id}>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{new Date(c.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</td>
+                    <td>
+                      <div style={{ fontWeight: 800 }}>Chambre {c.chambre?.numero_chambre || '?'}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{c.utilisateur?.nom_affiche || 'Inconnu'}</div>
+                    </td>
+                    <td>
+                      <ul style={{ margin: 0, paddingLeft: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                        {c.lignes_commande?.map((l, i) => (
+                          <li key={i}>{l.quantite}x {l.nom_article}</li>
+                        ))}
+                      </ul>
+                    </td>
+                    <td style={{ fontWeight: 800, color: 'var(--text-main)' }}>{fmt(c.montant_total)}</td>
+                    <td><StatutBadge statut={c.statut} /></td>
+                    <td>
+                      <select 
+                        value={c.statut} 
+                        onChange={(e) => changerStatut(c.id, e.target.value)}
+                        disabled={updating === c.id}
+                        className="admin-select-statut"
+                      >
+                        <option value="en_attente">En attente</option>
+                        <option value="en_preparation">En préparation</option>
+                        <option value="prete">Prête</option>
+                        <option value="livree">Livrée</option>
+                        <option value="annulee">Annulée</option>
+                      </select>
+                      {updating === c.id && <span style={{ marginLeft: '8px', fontSize: '12px' }}>⏳</span>}
+                    </td>
                   </tr>
                 ))
               }
@@ -390,12 +782,11 @@ export default function AdminDashboard() {
         <div className="admin-content">
           <Routes>
             <Route index element={<VueDashboard />} />
-            {/* The old VueReservations, VueChambres, VueCommandes should ideally be here too. I will mock them temporarily or assume they are unchanged from the user's perspective if not strictly rewritten. To not lose functionality, I will place dummy ones or recreate them simply. */}
             <Route path="utilisateurs" element={<VueUtilisateurs />} />
+            <Route path="reservations" element={<VueReservations />} />
             {/* Vues existantes reconstruites très rapidement : */}
-            <Route path="reservations" element={<div className="admin-view"><h1>Module Réservations (en développement)</h1></div>} />
-            <Route path="chambres" element={<div className="admin-view"><h1>Module Chambres (en développement)</h1></div>} />
-            <Route path="commandes" element={<div className="admin-view"><h1>Module Commandes (en développement)</h1></div>} />
+            <Route path="chambres" element={<VueChambres />} />
+            <Route path="commandes" element={<VueCommandes />} />
           </Routes>
         </div>
       </div>

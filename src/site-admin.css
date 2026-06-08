@@ -130,6 +130,43 @@
 .admin-table td { padding:14px 20px; border-bottom:1px solid var(--border-color); font-size:0.9rem; color:var(--text-main); }
 .admin-table tr:hover td { background:var(--surface-hover); }
 
+.admin-select-statut {
+  background:var(--bg-app);
+  border:1px solid var(--border-color);
+  color:var(--text-main);
+  padding:6px 10px;
+  border-radius:8px;
+  font-size:0.8rem;
+  font-weight:600;
+  outline:none;
+  cursor:pointer;
+  transition:all 0.2s;
+}
+.admin-select-statut:hover { border-color:var(--accent-color); }
+.admin-select-statut:disabled { opacity:0.5; cursor:not-allowed; }
+
+.admin-rooms-grid {
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:16px; padding:20px;
+}
+.admin-room-card {
+  background:var(--bg-app); border:1px solid var(--border-color); border-radius:12px;
+  padding:16px; display:flex; flex-direction:column; gap:12px; position:relative;
+  transition:all 0.2s;
+}
+.admin-room-card:hover { border-color:rgba(157,128,88,0.4); box-shadow:0 6px 16px rgba(0,0,0,0.05); transform:translateY(-2px); }
+.arc-header { display:flex; justify-content:space-between; align-items:flex-start; }
+.arc-numero { font-size:1.4rem; font-weight:900; color:var(--text-main); line-height:1; }
+.arc-body { flex:1; display:flex; flex-direction:column; gap:6px; }
+.arc-type { font-size:0.8rem; font-weight:600; color:var(--text-muted); }
+.arc-notes { font-size:0.75rem; color:#f59e0b; background:rgba(245,158,11,0.1); padding:6px; border-radius:6px; line-height:1.4; }
+.arc-loader { position:absolute; inset:0; background:rgba(255,255,255,0.7); backdrop-filter:blur(2px); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:700; color:var(--accent-color); }
+html.dark .arc-loader { background:rgba(0,0,0,0.7); }
+
+.admin-room-card.status-disponible { border-top:3px solid #10b981; }
+.admin-room-card.status-occupee { border-top:3px solid #3b82f6; }
+.admin-room-card.status-nettoyage { border-top:3px solid #f59e0b; }
+.admin-room-card.status-maintenance { border-top:3px solid #ef4444; }
+
 @media (max-width:768px) {
   .dashboard-grid { grid-template-columns:1fr; }
   .admin-sidebar { position:fixed; inset:0; right:auto; transform:translateX(-100%); width:260px; }

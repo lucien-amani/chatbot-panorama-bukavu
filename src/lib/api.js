@@ -59,6 +59,14 @@ export const chambresApi = {
   /** Changer statut d'une chambre (admin) */
   changerStatut: (id, statut) =>
     apiFetch(`/api/admin/chambres/${id}/statut`, { method: 'PATCH', body: JSON.stringify({ statut }) }),
+
+  /** Ajouter une chambre (admin) */
+  ajouter: (data) =>
+    apiFetch('/api/admin/chambres', { method: 'POST', body: JSON.stringify(data) }),
+
+  /** Modifier une chambre complète (admin) */
+  modifier: (id, data) =>
+    apiFetch(`/api/admin/chambres/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 };
 
 // ============================================================
