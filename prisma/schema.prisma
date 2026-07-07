@@ -1,13 +1,21 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// NOTE: This file is kept for convenience (local testing) and is intentionally
+// configured to use SQLite by default. The main backend of this project
+// (panorama-backend/) uses PostgreSQL and contains its own Prisma schema at:
+//   panorama-backend/prisma/schema.prisma
+//
+// If you intend to work on the server/backend, prefer the backend schema and
+// set DATABASE_URL accordingly before running migrations. Do NOT run
+// backend migrations against this SQLite schema if you mean to modify the
+// PostgreSQL production/development database.
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
+// Root-level Prisma schema (legacy / local-testing)
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
 }
 
 datasource db {
+  // Default: SQLite for quick local tests. Backend uses PostgreSQL.
   provider = "sqlite"
+  url      = env("DATABASE_URL")
 }

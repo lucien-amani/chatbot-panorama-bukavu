@@ -33,7 +33,7 @@ Panorama Assist vise à rendre l'assistance client accessible aux établissement
 - Frontend : React 19, Vite
 - Styling : Tailwind CSS, Lucide / Heroicons
 - SDK IA : `@google/genai` (Gemini)
-- Backend & données : PocketBase / Prisma & SQLite (selon configuration)
+- Backend & données : PocketBase / Prisma & SQLite (voir note ci‑dessous)
 - Synthèse et reconnaissance vocale : Web Speech API (navigateur)
 - Outils de développement : ESLint
 
@@ -46,13 +46,52 @@ Composition des langages du projet (analyse du dépôt) :
 
 ---
 
-## 🚀 Dernières Mises à Jour
+## 🔎 Base de données (Important)
 
-- Migration/adaptation pour utiliser le SDK `@google/genai` et les modèles Gemini (version récente : Gemini 3.5 Flash dans les fichiers de configuration).
-- Refonte UI/UX : nouvelle charte Panorama Assist, icônes Lucide/Heroicons, barre de navigation mobile.
-- Consolidation du backend : modèles Prisma, préparation pour intégration PocketBase/SQLite.
-- Améliorations STT/TTS : intégration robuste via Web Speech API et adaptation automatique de la langue.
-- Nettoyage du README et suppression des marqueurs de conflit présents dans le repo.
+Le backend principal (`panorama-backend/`) utilise PostgreSQL via Prisma. Les fichiers importants sont :
+
+- `panorama-backend/prisma/schema.prisma` — datasource configurée avec `provider = "postgresql"` et `url = env("DATABASE_URL")`.
+- `setup-postgres.sh` — script d'installation/initialisation PostgreSQL (création de la base, utilisateur, migrations et seed).
+
+NOTE : Il existe également un fichier `prisma/schema.prisma` à la racine du dépôt (legacy) qui est configuré pour SQLite. Ce fichier est conservé pour des scénarios locaux simples mais **ne doit pas** être utilisé pour les migrations/production du backend. Voir la section "Notes Prisma" plus bas.
+
+---
+
+## 🧩 Configuration de la variable DATABASE_URL
+
+Pour connecter le backend à PostgreSQL, définissez la variable d'environnement `DATABASE_URL`. Exemple de valeur :
+
+```text
+DATABASE_URL=postgresql://panorama_user:panorama2026@localhost:5432/panorama_bukavu?schema=public
+```
+
+Options pour définir la variable :
+
+- Créez un fichier `.env` ou `.env.local` à la racine du projet (ou dans `panorama-backend/`, selon votre workflow) et ajoutez la ligne ci‑dessus (en remplaçant l'utilisateur, mot de passe, hôte et port).
+- Exportez temporairement dans votre shell :
+
+```bash
+export DATABASE_URL="postgresql://user:pass@host:5432/dbname?schema=public"
+```
+
+---
+
+## 🚀 Initialiser PostgreSQL et appliquer les migrations
+
+1. Assurez-vous d'avoir PostgreSQL installé et le service en cours d'exécution.
+2. Exécutez le script d'installation fourni (il crée la base et l'utilisateur, installe les dépendances backend, applique les migrations Prisma et lance le seed) :
+
+```bash
+bash setup-postgres.sh
+```
+
+3. Si vous préférez appliquer manuellement les migrations, placez `DATABASE_URL` dans votre environnement puis exécutez depuis `panorama-backend/` :
+
+```bash
+cd panorama-backend
+npx prisma migrate deploy --schema=./prisma/schema.prisma
+node prisma/seed.js
+```
 
 ---
 
@@ -60,6 +99,7 @@ Composition des langages du projet (analyse du dépôt) :
 
 - Node.js (recommandé v18+)
 - npm (ou yarn)
+- PostgreSQL (si vous activez le backend PostgreSQL)
 - Un compte Google pour créer une clé API Gemini via Google AI Studio si vous souhaitez utiliser votre propre quota
 
 ---
@@ -76,35 +116,41 @@ npm install
 
 2. Configuration des variables d'environnement
 
-Créez un fichier `.env` ou `.env.local` à la racine et ajoutez (ou collez) votre clé Gemini :
+Créez un fichier `.env` ou `.env.local` à la racine et ajoutez (ou collez) votre clé Gemini et la DATABASE_URL si vous utilisez PostgreSQL :
 
 ```env
 VITE_GEMINI_API_KEY=VOTRE_CLE_GEMINI
+DATABASE_URL=postgresql://panorama_user:panorama2026@localhost:5432/panorama_bukavu?schema=public
+VITE_API_URL=http://localhost:5000
 ```
 
-Le projet propose aussi un mécanisme pour entrer une clé API personnalisée directement depuis l'interface (stockage local) pour augmenter les quotas si nécessaire.
-
-3. Lancer en développement :
+3. Lancer en développement (frontend) :
 
 ```bash
 npm run dev
 ```
 
-L'application est généralement accessible sur http://localhost:5173
+Si vous utilisez le backend local (`panorama-backend/`), démarrez-le séparément :
+
+```bash
+cd panorama-backend
+npm install
+npm run dev
+```
 
 ---
 
 ## Commandes utiles
 
 ```bash
-# Démarrer le serveur de développement
+# Démarrer le serveur de développement frontend
 npm run dev
 
-# Construire pour la production
-npm run build
+# Démarrer le backend (depuis panorama-backend/)
+cd panorama-backend && npm run dev
 
-# Prévisualiser la build
-npm run preview
+# Construire pour la production (frontend)
+npm run build
 
 # Linter
 npm run lint
@@ -112,50 +158,10 @@ npm run lint
 
 ---
 
-## Architecture & Fichiers Clés
+## Notes Prisma
 
-Arborescence principale :
-
-```
-chatbot-panorama-bukavu/
-├── public/
-│   └── panorama.png
-├── src/
-│   ├── App.jsx
-│   ├── main.jsx
-│   ├── index.css
-│   ├── gemini.js
-│   ├── useChat.js
-│   └── assets/
-├── index.html
-├── package.json
-├── vite.config.js
-└── README.md
-```
-
-Fichiers importants :
-
-- `src/App.jsx` : interface principale, gestion des messages, thèmes, historique et composants UI
-- `src/gemini.js` : wrapper / configuration pour communiquer avec l'API Gemini (`@google/genai`)
-- `src/useChat.js` : hook React pour l'envoi de messages, streaming et gestion d'état
-
----
-
-## Utilisation
-
-- Écrire ou dicter une question, appuyer sur Entrée ou cliquer sur Envoyer.
-- Les réponses sont streamées (amélioration UX) et rendues en Markdown.
-- Boutons pour écouter (TTS), copier le code, ou sauvegarder une session.
-- Gestion simple des quotas : si la clé par défaut est limitée, entrez votre clé personnalisée dans l'UI.
-
----
-
-## Sécurité et bonnes pratiques
-
-- Ne commitez jamais de clés API dans le dépôt.
-- Utilisez HTTPS en production.
-- Validez et nettoyez les entrées utilisateur côté frontend et (si présent) backend.
-- Pour la production, stockez les clés côté serveur ou via secrets de la plateforme d'hébergement.
+- Backend (production / dev réel) : utilisez le fichier `panorama-backend/prisma/schema.prisma` (provider = postgresql). Placez `DATABASE_URL` dans votre environnement avant d'exécuter les migrations.
+- Fichier root `prisma/schema.prisma` : maintenu comme fichier utile pour des tests locaux rapides (SQLite). Il est volontairement conservé mais **n'est pas** celui utilisé par le backend principal. Évitez d'exécuter des migrations depuis ce schéma si votre intention est de modifier la base PostgreSQL du backend.
 
 ---
 
@@ -183,6 +189,7 @@ export default {
 - STT/TTS ne fonctionnent pas : vérifier permissions micro, navigateur supporté (Chrome, Safari, Edge), et recharger.
 - Erreurs Gemini (quota 429) : entrer une clé API personnalisée ou attendre le renouvellement.
 - Historique perdu au rechargement : implémenter un backend pour persistance si besoin.
+- Problèmes de DB : vérifiez `DATABASE_URL`, exécutez `bash setup-postgres.sh` et consultez les logs du backend.
 
 ---
 
@@ -216,4 +223,4 @@ Ce projet est développé pour l'Hôtel Panorama Bukavu.
 
 ---
 
-*README mis à jour : harmonisation des sections, suppression des conflits et actualisation de la stack technique.*
+*README mis à jour : clarification sur l'utilisation de PostgreSQL pour le backend et instructions pour configurer DATABASE_URL.*
