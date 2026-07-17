@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useChat } from '../useChat';
 import { getApiKey, saveApiKey, clearApiKey } from '../gemini';
-import { speakText, stopSpeaking, startRecording } from '../elevenlabs';
+import { speakText, stopSpeaking, startRecording, fetchVoices, getVoiceId, setVoiceId } from '../elevenlabs';
 
 // ─── Avatars ──────────────────────────────────────────────────────────────────
 
@@ -131,6 +131,13 @@ export default function ChatWidget() {
   const [showSettings, setShowSettings] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState('');
 
+  // Voix ElevenLabs
+  const [voices, setVoices] = useState([]);
+  const [voicesLoading, setVoicesLoading] = useState(false);
+  const [selectedVoiceId, setSelectedVoiceId] = useState(() => getVoiceId());
+  const [previewAudio, setPreviewAudio] = useState(null);
+  const [previewingId, setPreviewingId] = useState(null);
+
   // TTS : { [msgId]: 'idle'|'loading'|'playing'|'stopped'|'error' }
   const [ttsState, setTtsState] = useState({});
 
@@ -151,15 +158,28 @@ export default function ChatWidget() {
     }
   }, [open, showSettings]);
 
+  // Charger les voix quand on ouvre les paramètres
+  useEffect(() => {
+    if (showSettings && voices.length === 0) {
+      setVoicesLoading(true);
+      fetchVoices().then(v => { setVoices(v); setVoicesLoading(false); });
+    }
+  }, [showSettings]);
+
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
   useEffect(() => {
     if (open && !showSettings) setTimeout(() => inputRef.current?.focus(), 200);
   }, [open, showSettings]);
 
-  // Arrêter audio quand le widget est fermé
+  // Arrêter audio immédiatement quand le widget est fermé
   useEffect(() => {
     if (!open) {
+      // Arrêter la lecture TTS
       stopSpeaking((id, state) => setTtsState(prev => ({ ...prev, [id]: state })));
+      // Arrêter la prévisualisation de voix
+      if (previewAudio) { previewAudio.pause(); setPreviewAudio(null); setPreviewingId(null); }
+      // Arrêter l'enregistrement micro
+      if (recorderRef.current) { recorderRef.current.stop(); recorderRef.current = null; setRecState('idle'); setInterimText(''); }
     }
   }, [open]);
 
@@ -317,15 +337,87 @@ export default function ChatWidget() {
                 <button type="button" className="cw-btn cw-btn-secondary" onClick={handleResetSettings}>Réinitialiser</button>
               </div>
             </form>
-            <div className="cw-el-info">
-              <span style={{ fontSize: '1.1rem' }}>🎙</span>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '0.8rem', marginBottom: '0.2rem' }}>ElevenLabs Flash v2.5</div>
-                <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                  Synthèse vocale ultra-rapide (~75ms). Reconnaissance vocale temps réel via Web Speech API.
+            {/* ── Sélecteur de voix ElevenLabs ── */}
+            <div className="cw-voice-section">
+              <div className="cw-voice-header">
+                <span style={{ fontSize: '1rem' }}>🎙</span>
+                <div>
+                  <div className="cw-voice-title">Voix ElevenLabs</div>
+                  <div className="cw-voice-subtitle">Flash v2.5 — latence ~75ms</div>
                 </div>
               </div>
+
+              {voicesLoading ? (
+                <div className="cw-voice-loading">
+                  <span className="cw-speak-dots"><span/><span/><span/></span>
+                  <span>Chargement des voix…</span>
+                </div>
+              ) : voices.length === 0 ? (
+                <div className="cw-voice-empty">Impossible de charger les voix. Vérifiez votre clé API.</div>
+              ) : (
+                <div className="cw-voice-list">
+                  {voices.map(v => {
+                    const isSelected = selectedVoiceId === v.voice_id;
+                    const isPreviewing = previewingId === v.voice_id;
+                    const lang = v.labels?.language || v.labels?.accent || '';
+                    const gender = v.labels?.gender || '';
+
+                    const handlePreview = (e) => {
+                      e.stopPropagation();
+                      if (isPreviewing) {
+                        previewAudio?.pause();
+                        setPreviewAudio(null);
+                        setPreviewingId(null);
+                        return;
+                      }
+                      if (previewAudio) { previewAudio.pause(); }
+                      if (!v.preview_url) return;
+                      const audio = new Audio(v.preview_url);
+                      audio.onended = () => { setPreviewAudio(null); setPreviewingId(null); };
+                      audio.play();
+                      setPreviewAudio(audio);
+                      setPreviewingId(v.voice_id);
+                    };
+
+                    const handleSelect = () => {
+                      setSelectedVoiceId(v.voice_id);
+                      setVoiceId(v.voice_id);
+                    };
+
+                    return (
+                      <div
+                        key={v.voice_id}
+                        className={`cw-voice-item ${isSelected ? 'selected' : ''}`}
+                        onClick={handleSelect}
+                      >
+                        <div className="cw-voice-item-info">
+                          <div className="cw-voice-name">{v.name}</div>
+                          {(lang || gender) && (
+                            <div className="cw-voice-tags">
+                              {lang && <span className="cw-voice-tag">{lang}</span>}
+                              {gender && <span className="cw-voice-tag">{gender}</span>}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          {isSelected && <span className="cw-voice-check">✓</span>}
+                          {v.preview_url && (
+                            <button
+                              className={`cw-voice-preview-btn ${isPreviewing ? 'playing' : ''}`}
+                              onClick={handlePreview}
+                              title={isPreviewing ? 'Arrêter' : 'Écouter un aperçu'}
+                            >
+                              {isPreviewing ? '■' : '▶'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
+
             <div style={{ marginTop: 'auto', fontSize: '0.73rem', color: 'var(--text-muted)' }}>
               Clé Gemini gratuite sur <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)' }}>Google AI Studio</a>.
             </div>

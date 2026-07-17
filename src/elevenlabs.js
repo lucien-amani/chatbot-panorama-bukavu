@@ -10,7 +10,48 @@
 const ELEVENLABS_API_KEY =
   import.meta.env.VITE_ELEVENLABS_API_KEY || '';
 
-const VOICE_ID = 'JBFqnCBsd6RMkjVDRZzb'; // George — multilingue FR/EN
+// ─── Gestion de la voix (persistée dans localStorage) ────────────────────────
+
+const DEFAULT_VOICE_ID = 'JBFqnCBsd6RMkjVDRZzb'; // George — multilingue FR/EN
+const VOICE_STORAGE_KEY = 'panorama_assist_voice_id';
+
+/** Retourne l'ID de voix actif (localStorage ou défaut). */
+export function getVoiceId() {
+  return localStorage.getItem(VOICE_STORAGE_KEY) || DEFAULT_VOICE_ID;
+}
+
+/** Sauvegarde l'ID de voix choisi. */
+export function setVoiceId(id) {
+  if (id && id.trim()) {
+    localStorage.setItem(VOICE_STORAGE_KEY, id.trim());
+  } else {
+    localStorage.removeItem(VOICE_STORAGE_KEY);
+  }
+}
+
+/**
+ * Récupère la liste des voix disponibles sur le compte ElevenLabs.
+ * @returns {Promise<Array<{voice_id, name, category, labels, preview_url}>>}
+ */
+export async function fetchVoices() {
+  if (!ELEVENLABS_API_KEY) return [];
+  try {
+    const res = await fetch('https://api.elevenlabs.io/v1/voices', {
+      headers: { 'xi-api-key': ELEVENLABS_API_KEY },
+    });
+    if (!res.ok) throw new Error(`ElevenLabs voices ${res.status}`);
+    const data = await res.json();
+    // Trier : premade d'abord, puis cloned/generated
+    const voices = (data.voices || []).sort((a, b) => {
+      const order = { premade: 0, professional: 1, cloned: 2, generated: 3 };
+      return (order[a.category] ?? 9) - (order[b.category] ?? 9);
+    });
+    return voices;
+  } catch (err) {
+    console.error('[ElevenLabs] fetchVoices:', err);
+    return [];
+  }
+}
 
 // eleven_flash_v2_5 : latence ~75ms (vs plusieurs secondes pour eleven_v3)
 const MODEL_ID = 'eleven_flash_v2_5';
@@ -57,7 +98,7 @@ export async function speakText(text, msgId, onStateChange) {
   try {
     // Endpoint /stream pour démarrer la lecture dès les premiers octets reçus
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}/stream`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${getVoiceId()}/stream`,
       {
         method: 'POST',
         headers: {
