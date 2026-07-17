@@ -1,0 +1,1364 @@
+{
+    "metadata": {
+        "city": "Bukavu",
+        "country": "République Démocratique du Congo (RDC)",
+        "timezone": "Africa/Lubumbashi (UTC+2)",
+        "currency": "USD (Dollar américain) principalement, Francs Congolais (CDF) acceptés",
+        "default_policies": {
+            "check_in": "14:00",
+            "check_out": "11:00",
+            "cancellation": "Veuillez consulter le site de réservation pour les conditions spécifiques à chaque hôtel."
+        },
+        "data_accuracy": "Données vérifiées et compilées en Juillet 2026. Les prix sont des fourchettes indicatives et peuvent varier selon la saison et la disponibilité."
+    },
+    "booking_integration": {
+        "platform_url": "https://votre-site-de-reservation.com",
+        "url_pattern": "https://votre-site-de-reservation.com/hotel/{hotel_slug}?checkin={date}&checkout={date}",
+        "instruction_for_ai": "Ne jamais simuler une réservation. Pour les tarifs et la disponibilité en temps réel, générez toujours un lien cliquable en utilisant le 'slug' correspondant et invitez le client à consulter le site web officiel."
+    },
+    "response_guidelines": {
+        "strict_data_only": "Ne répondre qu'avec les informations présentes dans ce fichier. Si une information n'est pas disponible (ex: prix exact, disponibilité), indiquez poliment au client de vérifier sur le site de réservation.",
+        "tone": "Professionnel, chaleureux et concis. Adaptez la réponse à la question posée."
+    },
+    "hotels": [
+        {
+            "slug": "orchids-safari-club",
+            "name": "Orchids' Safari Club",
+            "also_known_as": [
+                "ORCHID",
+                "Orchids Club"
+            ],
+            "category": "Haut de gamme / Lodge de Luxe",
+            "address": {
+                "street": "22/24 Avenue Kahuzi Biega",
+                "area": "Ibanda",
+                "city": "Bukavu",
+                "country": "RDC",
+                "landmark": "Bord du Lac Kivu"
+            },
+            "gps": {
+                "latitude": -2.49787,
+                "longitude": 28.87482
+            },
+            "contact": {
+                "phone": "+243 813 126 467",
+                "email": null,
+                "website": null
+            },
+            "description": {
+                "summary": "L'établissement le plus prestigieux de Bukavu. Un cadre colonial luxueux offrant une vue imprenable sur le lac Kivu.",
+                "detailed": "Réputé pour son restaurant gastronomique, son service haut de gamme et son ambiance feutrée. Point de départ idéal pour les excursions vers le Parc National de Kahuzi-Biega."
+            },
+            "features": {
+                "rooms": {
+                    "total": "25-31",
+                    "types": [
+                        {
+                            "name": "Chambres Standard",
+                            "description": "Chambres confortables et bien équipées.",
+                            "price_range_usd": "145-200"
+                        },
+                        {
+                            "name": "Suites",
+                            "description": "Suites spacieuses offrant plus de confort et de services.",
+                            "price_range_usd": "200-350"
+                        },
+                        {
+                            "name": "Appartements",
+                            "description": "Appartements avec kitchenette, idéaux pour les longs séjours.",
+                            "price_range_usd": "250-400"
+                        }
+                    ]
+                },
+                "amenities": [
+                    {
+                        "category": "Général",
+                        "items": [
+                            "Climatisation",
+                            "Parking gratuit",
+                            "Jardin",
+                            "Terrasse",
+                            "Accès direct au lac"
+                        ]
+                    },
+                    {
+                        "category": "Nourriture & Boissons",
+                        "items": [
+                            "Restaurant gastronomique",
+                            "Bar",
+                            "Petit-déjeuner inclus"
+                        ]
+                    },
+                    {
+                        "category": "Services",
+                        "items": [
+                            "Réception 24h/24",
+                            "Service d'étage",
+                            "Blanchisserie",
+                            "Excursions",
+                            "Navette aéroport"
+                        ]
+                    },
+                    {
+                        "category": "Équipement chambre",
+                        "items": [
+                            "TV écran plat",
+                            "Réfrigérateur",
+                            "Coffre-fort",
+                            "Bureau",
+                            "Salle de bain privative"
+                        ]
+                    }
+                ],
+                "pools": false,
+                "gym": false,
+                "wifi": true,
+                "spa": false
+            },
+            "keywords_tags": [
+                "luxe",
+                "colonial",
+                "gorilles",
+                "vue lac",
+                "diplomates",
+                "calme",
+                "gastronomie"
+            ],
+            "nearby": [
+                "Parc National de Kahuzi-Biega (départ)",
+                "Rives du Lac Kivu"
+            ],
+            "booking_link": "/hotel/orchids-safari-club"
+        },
+        {
+            "slug": "hotel-new-riviera",
+            "name": "Hotel New Riviera",
+            "also_known_as": [
+                "New Riviera"
+            ],
+            "category": "Haut de gamme / Contemporain",
+            "address": {
+                "street": "10 Avenue du Lac, Labotte",
+                "area": "Ibanda",
+                "city": "Bukavu",
+                "country": "RDC",
+                "landmark": "Bord du Lac Kivu"
+            },
+            "gps": {
+                "latitude": -2.49111,
+                "longitude": 28.85504
+            },
+            "contact": {
+                "phone": "+243 999 917 112",
+                "email": null,
+                "website": null
+            },
+            "description": {
+                "summary": "Un joyau architectural moderne à Bukavu. Il allie design contemporain et confort absolu.",
+                "detailed": "Ouvert récemment (2024), il se distingue par ses 66 chambres modernes, son spa relaxant et sa piscine. Le restaurant en bord d'eau est très apprécié."
+            },
+            "features": {
+                "rooms": {
+                    "total": 66,
+                    "types": [
+                        {
+                            "name": "Chambres Deluxe",
+                            "description": "Chambres modernes avec balcon privé.",
+                            "price_range_usd": "150-220"
+                        },
+                        {
+                            "name": "Chambres Exécutives",
+                            "description": "Chambres plus spacieuses, idéales pour les voyages d'affaires.",
+                            "price_range_usd": "220-300"
+                        },
+                        {
+                            "name": "Suites",
+                            "description": "Suites luxueuses avec un espace de vie séparé.",
+                            "price_range_usd": "300-450"
+                        }
+                    ]
+                },
+                "amenities": [
+                    {
+                        "category": "Général",
+                        "items": [
+                            "Climatisation",
+                            "Parking gratuit",
+                            "Piscine extérieure",
+                            "Salle de sport (Fitness)",
+                            "Spa",
+                            "Navette aéroport gratuite"
+                        ]
+                    },
+                    {
+                        "category": "Nourriture & Boissons",
+                        "items": [
+                            "Restaurant gastronomique",
+                            "Bar lounge",
+                            "Room service"
+                        ]
+                    },
+                    {
+                        "category": "Services",
+                        "items": [
+                            "Réception 24h/24",
+                            "Centre d'affaires",
+                            "Blanchisserie",
+                            "Night-club"
+                        ]
+                    },
+                    {
+                        "category": "Équipement chambre",
+                        "items": [
+                            "TV écran plat",
+                            "Balcon privé",
+                            "Micro-ondes",
+                            "Salle de bain privative"
+                        ]
+                    }
+                ],
+                "pools": true,
+                "gym": true,
+                "wifi": true,
+                "spa": true
+            },
+            "keywords_tags": [
+                "moderne",
+                "design",
+                "bien-être",
+                "spa",
+                "piscine",
+                "sport",
+                "récent",
+                "affaires"
+            ],
+            "nearby": [
+                "Lac Kivu",
+                "Centre-ville d'Ibanda",
+                "Independence Square"
+            ],
+            "booking_link": "/hotel/hotel-new-riviera"
+        },
+        {
+            "slug": "coco-lodge",
+            "name": "CoCo Lodge",
+            "also_known_as": [
+                "Lodge Coco"
+            ],
+            "category": "Lodge d'Ambiance / Confortable",
+            "address": {
+                "street": "28 Avenue Muhumba (Corniche de Nguba)",
+                "area": "Nguba",
+                "city": "Bukavu",
+                "country": "RDC",
+                "landmark": "Près de la frontière Rusizi"
+            },
+            "gps": {
+                "latitude": -2.49613,
+                "longitude": 28.85861
+            },
+            "contact": {
+                "phone": "+243 998 707 344",
+                "email": null,
+                "website": null
+            },
+            "description": {
+                "summary": "Un lodge à l'ambiance chaleureuse, décontractée et familiale.",
+                "detailed": "Réputé pour sa pizzeria et sa cuisine de qualité. Le propriétaire est une mine d'informations pour organiser des excursions."
+            },
+            "features": {
+                "rooms": {
+                    "total": 8,
+                    "types": [
+                        {
+                            "name": "Chambres Simples",
+                            "description": "Chambres avec un lit simple, pour voyageur seul.",
+                            "price_range_usd": "50-80"
+                        },
+                        {
+                            "name": "Chambres Doubles",
+                            "description": "Chambres avec un grand lit pour deux personnes.",
+                            "price_range_usd": "80-120"
+                        }
+                    ]
+                },
+                "amenities": [
+                    {
+                        "category": "Général",
+                        "items": [
+                            "Jardin",
+                            "Terrasse",
+                            "Parking",
+                            "Vue sur lac"
+                        ]
+                    },
+                    {
+                        "category": "Nourriture & Boissons",
+                        "items": [
+                            "Pizzeria réputée (au feu de bois)",
+                            "Restaurant",
+                            "Bar"
+                        ]
+                    },
+                    {
+                        "category": "Services",
+                        "items": [
+                            "Excursions organisées",
+                            "Réception",
+                            "Blanchisserie"
+                        ]
+                    },
+                    {
+                        "category": "Équipement chambre",
+                        "items": [
+                            "Salle de bain privative",
+                            "Eau chaude"
+                        ]
+                    }
+                ],
+                "pools": false,
+                "gym": false,
+                "wifi": true,
+                "spa": false
+            },
+            "keywords_tags": [
+                "convivial",
+                "familial",
+                "pizzeria",
+                "gorilles",
+                "excursions",
+                "chaleureux",
+                "pas cher"
+            ],
+            "nearby": [
+                "Corniche de Nguba",
+                "Frontière Ruzizi (Rwanda)"
+            ],
+            "booking_link": "/hotel/coco-lodge"
+        },
+        {
+            "slug": "hotel-begonias",
+            "name": "Hotel Begonias",
+            "also_known_as": [
+                "Begonias"
+            ],
+            "category": "Standing / Confort",
+            "address": {
+                "street": "63 Avenue de la Montagne / Avenue President Mobutu",
+                "area": "Ibanda",
+                "city": "Bukavu",
+                "country": "RDC",
+                "landmark": "Cour verdoyante"
+            },
+            "gps": {
+                "latitude": -2.49196,
+                "longitude": 28.8886
+            },
+            "contact": {
+                "phone": "+243 847 016 035",
+                "email": null,
+                "website": null
+            },
+            "description": {
+                "summary": "Établissement de standing construit autour d'une magnifique cour verdoyante, offrant une piscine à débordement.",
+                "detailed": "L'hôtel dispose d'un centre de fitness, d'un restaurant et d'un bar. Actuellement en travaux de rénovation (2026) pour améliorer ses installations."
+            },
+            "features": {
+                "rooms": {
+                    "total": 30,
+                    "types": [
+                        {
+                            "name": "Chambres Classiques",
+                            "description": "Chambres lumineuses et spacieuses avec vue sur le jardin.",
+                            "price_range_usd": "150-200"
+                        },
+                        {
+                            "name": "Chambres Supérieures",
+                            "description": "Chambres offrant plus d'espace et de confort.",
+                            "price_range_usd": "200-250"
+                        },
+                        {
+                            "name": "Chambres Triples",
+                            "description": "Chambres adaptées pour trois personnes.",
+                            "price_range_usd": "220-280"
+                        }
+                    ]
+                },
+                "amenities": [
+                    {
+                        "category": "Général",
+                        "items": [
+                            "Jardin tropical",
+                            "Piscine à débordement",
+                            "Parking",
+                            "Climatisation"
+                        ]
+                    },
+                    {
+                        "category": "Nourriture & Boissons",
+                        "items": [
+                            "Restaurant",
+                            "Bar"
+                        ]
+                    },
+                    {
+                        "category": "Services",
+                        "items": [
+                            "Centre de fitness",
+                            "Blanchisserie",
+                            "Réception",
+                            "Sauna"
+                        ]
+                    },
+                    {
+                        "category": "Équipement chambre",
+                        "items": [
+                            "TV",
+                            "Cheminée (dans certaines chambres)"
+                        ]
+                    }
+                ],
+                "pools": true,
+                "gym": true,
+                "wifi": true,
+                "spa": false
+            },
+            "keywords_tags": [
+                "piscine",
+                "débordement",
+                "verdoyant",
+                "calme",
+                "fitness",
+                "périphérie"
+            ],
+            "nearby": [
+                "Périphérie d'Ibanda",
+                "Proche de la frontière rwandaise"
+            ],
+            "booking_link": "/hotel/hotel-begonias"
+        },
+        {
+            "slug": "hotel-panorama",
+            "name": "Hôtel Panorama",
+            "also_known_as": [
+                "Panorama"
+            ],
+            "category": "Classique / Divertissement",
+            "address": {
+                "street": "Boulevard du Lac N°12, La Botte",
+                "area": "Ibanda",
+                "city": "Bukavu",
+                "country": "RDC",
+                "landmark": "Bord du lac"
+            },
+            "gps": {
+                "latitude": -2.5053,
+                "longitude": 28.8469
+            },
+            "contact": {
+                "phone": "+243 851 026 625",
+                "email": null,
+                "website": "hotel-panorama-bukavu.com"
+            },
+            "description": {
+                "summary": "Une adresse incontournable offrant de nombreuses activités de divertissement, dont des mini-randonnées sur le lac Kivu.",
+                "detailed": "Dispose de piscines, d'une salle de conférence et d'un fitness. Idéal pour les voyageurs actifs. Attention, le parking est un peu restreint."
+            },
+            "features": {
+                "rooms": {
+                    "total": 54,
+                    "types": [
+                        {
+                            "name": "Chambres Standards",
+                            "description": "Chambres confortables avec vue sur la ville ou le lac.",
+                            "price_range_usd": "130-190"
+                        },
+                        {
+                            "name": "Suites",
+                            "description": "Suites spacieuses offrant un confort supérieur.",
+                            "price_range_usd": "280-360"
+                        }
+                    ]
+                },
+                "amenities": [
+                    {
+                        "category": "Général",
+                        "items": [
+                            "Piscine",
+                            "Parking (restreint)",
+                            "Climatisation"
+                        ]
+                    },
+                    {
+                        "category": "Nourriture & Boissons",
+                        "items": [
+                            "Restaurant",
+                            "Bar"
+                        ]
+                    },
+                    {
+                        "category": "Activités",
+                        "items": [
+                            "Mini-randonnées sur le lac",
+                            "Divertissements"
+                        ]
+                    },
+                    {
+                        "category": "Services",
+                        "items": [
+                            "Salle de conférence",
+                            "Fitness",
+                            "Réception 24h/24"
+                        ]
+                    },
+                    {
+                        "category": "Équipement chambre",
+                        "items": [
+                            "TV"
+                        ]
+                    }
+                ],
+                "pools": true,
+                "gym": true,
+                "wifi": true,
+                "spa": false
+            },
+            "keywords_tags": [
+                "activités",
+                "randonnée",
+                "lac",
+                "divertissement",
+                "conférence"
+            ],
+            "nearby": [
+                "Boulevard du Lac",
+                "Bâtiments gouvernementaux"
+            ],
+            "booking_link": "/hotel/hotel-panorama"
+        },
+        {
+            "slug": "residence-hotel",
+            "name": "Résidence Hôtel",
+            "also_known_as": [
+                "Residence",
+                "Hotel Residence"
+            ],
+            "category": "Urbain / Fonctionnel",
+            "address": {
+                "street": "76 Avenue Ibanda P.E Lumumba",
+                "area": "Ibanda",
+                "city": "Bukavu",
+                "country": "RDC",
+                "landmark": "Centre-ville"
+            },
+            "gps": {
+                "latitude": -2.49077,
+                "longitude": 28.84281
+            },
+            "contact": {
+                "phone": "+243 999 445 052",
+                "email": null,
+                "website": "www.residencehotelbukavu.com"
+            },
+            "description": {
+                "summary": "Hôtel urbain de 41 chambres, récemment rénové. Propre, confortable et bon marché.",
+                "detailed": "Il intègre le Bodega Bar, Le Café Bukavu et des espaces événementiels. Très pratique pour les séjours d'affaires ou les courts séjours en centre-ville."
+            },
+            "features": {
+                "rooms": {
+                    "total": 41,
+                    "types": [
+                        {
+                            "name": "Chambres Standards",
+                            "description": "Chambres confortables et fonctionnelles.",
+                            "price_range_usd": "150-300"
+                        },
+                        {
+                            "name": "Chambres Supérieures",
+                            "description": "Chambres plus spacieuses avec balcon.",
+                            "price_range_usd": "300-700"
+                        }
+                    ]
+                },
+                "amenities": [
+                    {
+                        "category": "Général",
+                        "items": [
+                            "Parking",
+                            "Climatisation",
+                            "Piscine"
+                        ]
+                    },
+                    {
+                        "category": "Nourriture & Boissons",
+                        "items": [
+                            "Bodega Bar",
+                            "Le Café Bukavu",
+                            "Restaurant",
+                            "Night-club"
+                        ]
+                    },
+                    {
+                        "category": "Services",
+                        "items": [
+                            "Espaces événementiels",
+                            "Réception 24h/24",
+                            "Salle de réunion"
+                        ]
+                    },
+                    {
+                        "category": "Équipement chambre",
+                        "items": [
+                            "TV par câble",
+                            "Climatisation",
+                            "Bureau",
+                            "Balcon privé",
+                            "Peignoirs"
+                        ]
+                    }
+                ],
+                "pools": true,
+                "gym": false,
+                "wifi": true,
+                "spa": false
+            },
+            "keywords_tags": [
+                "urbain",
+                "économique",
+                "propre",
+                "rénové",
+                "affaires",
+                "bar"
+            ],
+            "nearby": [
+                "Centre-ville d'Ibanda",
+                "Avenue Lumumba",
+                "Lac Kivu (0.3 km)"
+            ],
+            "booking_link": "/hotel/residence-hotel"
+        },
+        {
+            "slug": "elizabeth-hotel",
+            "name": "Elizabeth Hotel Bukavu",
+            "also_known_as": [
+                "Elizabeth"
+            ],
+            "category": "Haut de gamme / Affaires",
+            "address": {
+                "street": "14 Avenue de Kalehe",
+                "area": "Ibanda",
+                "city": "Bukavu",
+                "country": "RDC",
+                "landmark": "Collines environnantes"
+            },
+            "gps": {
+                "latitude": -2.5051,
+                "longitude": 28.86636
+            },
+            "contact": {
+                "phone": "+243 993 233 553",
+                "email": null,
+                "website": null
+            },
+            "description": {
+                "summary": "Hôtel 4 étoiles offrant un confort haut de gamme avec 38 chambres spacieuses.",
+                "detailed": "Très réputé pour son restaurant et son bar avec terrasse offrant une vue imprenable sur les collines rwandaises. Service de change et réception 24h/24."
+            },
+            "features": {
+                "rooms": {
+                    "total": 38,
+                    "types": [
+                        {
+                            "name": "Chambres Spacieuses",
+                            "description": "Chambres confortables avec vue sur les collines.",
+                            "price_range_usd": "150-250"
+                        },
+                        {
+                            "name": "Suites",
+                            "description": "Suites luxueuses avec salon séparé.",
+                            "price_range_usd": "250-400"
+                        }
+                    ]
+                },
+                "amenities": [
+                    {
+                        "category": "Général",
+                        "items": [
+                            "Parking",
+                            "Climatisation",
+                            "Terrasse avec vue"
+                        ]
+                    },
+                    {
+                        "category": "Nourriture & Boissons",
+                        "items": [
+                            "Restaurant réputé",
+                            "Bar",
+                            "Room service"
+                        ]
+                    },
+                    {
+                        "category": "Services",
+                        "items": [
+                            "Salle de conférence (100 pax)",
+                            "Service de change",
+                            "Réception 24h/24",
+                            "Blanchisserie"
+                        ]
+                    },
+                    {
+                        "category": "Équipement chambre",
+                        "items": [
+                            "TV",
+                            "Climatisation"
+                        ]
+                    }
+                ],
+                "pools": false,
+                "gym": false,
+                "wifi": true,
+                "spa": false
+            },
+            "keywords_tags": [
+                "4 étoiles",
+                "conférence",
+                "séminaire",
+                "vue collines",
+                "Rwanda",
+                "affaires"
+            ],
+            "nearby": [
+                "Vue sur les collines rwandaises",
+                "Marché de Nyawera (200 m)"
+            ],
+            "booking_link": "/hotel/elizabeth-hotel"
+        },
+        {
+            "slug": "lake-side-hotel",
+            "name": "Lake Side",
+            "also_known_as": [
+                "Lake Side Hotel"
+            ],
+            "category": "Classique / Romantique",
+            "address": {
+                "street": "100 Avenue du Lac, Quartier de La Botte",
+                "area": "Ibanda",
+                "city": "Bukavu",
+                "country": "RDC",
+                "landmark": "Bord du lac"
+            },
+            "gps": {
+                "latitude": -2.49077,
+                "longitude": 28.84281
+            },
+            "contact": {
+                "phone": "+243 999 091 700",
+                "email": null,
+                "website": null
+            },
+            "description": {
+                "summary": "Hôtel 3 étoiles offrant un cadre romantique et une vue spectaculaire sur le lac Kivu.",
+                "detailed": "Idéal pour se reposer avant ou après un trek de gorilles. L'ambiance y est paisible et propice à la détente."
+            },
+            "features": {
+                "rooms": {
+                    "total": 10,
+                    "types": [
+                        {
+                            "name": "Chambres avec Vue sur le Lac",
+                            "description": "Chambres confortables avec un balcon offrant une vue imprenable sur le lac.",
+                            "price_range_usd": "80-150"
+                        }
+                    ]
+                },
+                "amenities": [
+                    {
+                        "category": "Général",
+                        "items": [
+                            "Parking",
+                            "Vue sur lac",
+                            "Balcon"
+                        ]
+                    },
+                    {
+                        "category": "Nourriture & Boissons",
+                        "items": [
+                            "Restaurant",
+                            "Bar"
+                        ]
+                    },
+                    {
+                        "category": "Services",
+                        "items": [
+                            "Réception",
+                            "Service d'étage"
+                        ]
+                    },
+                    {
+                        "category": "Équipement chambre",
+                        "items": [
+                            "TV écran plat",
+                            "Minibar",
+                            "Ventilateur",
+                            "Moustiquaire",
+                            "Salle de bain privative"
+                        ]
+                    }
+                ],
+                "pools": false,
+                "gym": false,
+                "wifi": true,
+                "spa": false
+            },
+            "keywords_tags": [
+                "romantique",
+                "vue lac",
+                "3 étoiles",
+                "calme",
+                "gorilles"
+            ],
+            "nearby": [
+                "Lac Kivu",
+                "Quartier La Botte"
+            ],
+            "booking_link": "/hotel/lake-side-hotel"
+        },
+        {
+            "slug": "horizon-hotel",
+            "name": "Horizon Hotel",
+            "also_known_as": [
+                "Horizon"
+            ],
+            "category": "Économique / Pratique",
+            "address": {
+                "street": "Unnamed Road, Muhumba",
+                "area": "Muhumba",
+                "city": "Bukavu",
+                "country": "RDC",
+                "landmark": "Quartier Muhumba"
+            },
+            "gps": {
+                "latitude": -2.49712,
+                "longitude": 28.87779
+            },
+            "contact": {
+                "phone": "+243 974 968 089",
+                "email": null,
+                "website": null
+            },
+            "description": {
+                "summary": "Hôtel de 35 chambres, fonctionnel et économique.",
+                "detailed": "Une option pratique pour les voyageurs à petit budget recherchant le confort de base. Parking et réception disponibles."
+            },
+            "features": {
+                "rooms": {
+                    "total": 35,
+                    "types": [
+                        {
+                            "name": "Chambres Standards",
+                            "description": "Chambres simples et fonctionnelles.",
+                            "price_range_usd": "80-120"
+                        }
+                    ]
+                },
+                "amenities": [
+                    {
+                        "category": "Général",
+                        "items": [
+                            "Parking",
+                            "Climatisation"
+                        ]
+                    },
+                    {
+                        "category": "Nourriture & Boissons",
+                        "items": [
+                            "Petit-déjeuner inclus",
+                            "Service d'étage"
+                        ]
+                    },
+                    {
+                        "category": "Services",
+                        "items": [
+                            "Réception 24h/24",
+                            "Centre d'affaires",
+                            "Salle de conférence",
+                            "Bar"
+                        ]
+                    },
+                    {
+                        "category": "Équipement chambre",
+                        "items": [
+                            "TV",
+                            "Wi-Fi"
+                        ]
+                    }
+                ],
+                "pools": false,
+                "gym": false,
+                "wifi": true,
+                "spa": false
+            },
+            "keywords_tags": [
+                "économique",
+                "petit déjeuner",
+                "wifi gratuit",
+                "pratique",
+                "affaires"
+            ],
+            "nearby": [
+                "Avenue de Goma",
+                "Muhumba",
+                "Aéroport de Kamembe (proche)"
+            ],
+            "booking_link": "/hotel/horizon-hotel"
+        },
+        {
+            "slug": "bach-palace",
+            "name": "Bach Palace",
+            "also_known_as": [
+                "Beach Palace"
+            ],
+            "category": "Haut de gamme / Événementiel",
+            "address": {
+                "street": "48 Avenue du Lac",
+                "area": "Ibanda",
+                "city": "Bukavu",
+                "country": "RDC",
+                "landmark": "Bord du lac"
+            },
+            "gps": {
+                "latitude": -2.48675,
+                "longitude": 28.85861
+            },
+            "contact": {
+                "phone": "+243 999 791 039",
+                "email": null,
+                "website": null
+            },
+            "description": {
+                "summary": "Cadre de luxe prisé pour l'organisation de déjeuners, de mariages et de séances photo.",
+                "detailed": "Un établissement chic au bord du lac, très photogénique. Idéal pour les événements spéciaux et les séjours de prestige."
+            },
+            "features": {
+                "rooms": {
+                    "total": 64,
+                    "types": [
+                        {
+                            "name": "Chambres Standards",
+                            "description": "Chambres élégantes avec balcon privé.",
+                            "price_range_usd": "150-200"
+                        },
+                        {
+                            "name": "Suites Ultra-classes",
+                            "description": "Suites luxueuses offrant un confort exceptionnel.",
+                            "price_range_usd": "250-400"
+                        }
+                    ]
+                },
+                "amenities": [
+                    {
+                        "category": "Général",
+                        "items": [
+                            "Parking",
+                            "Piscine",
+                            "Vue lac",
+                            "Balcon privé"
+                        ]
+                    },
+                    {
+                        "category": "Bien-être",
+                        "items": [
+                            "Salle de sport",
+                            "Sauna"
+                        ]
+                    },
+                    {
+                        "category": "Nourriture & Boissons",
+                        "items": [
+                            "Restaurant",
+                            "Bar"
+                        ]
+                    },
+                    {
+                        "category": "Services",
+                        "items": [
+                            "Événements (mariages)",
+                            "Réception",
+                            "Blanchisserie"
+                        ]
+                    },
+                    {
+                        "category": "Équipement chambre",
+                        "items": [
+                            "TV",
+                            "Wi-Fi gratuit",
+                            "Salle de bain privative",
+                            "Sèche-cheveux",
+                            "Chaussons"
+                        ]
+                    }
+                ],
+                "pools": true,
+                "gym": true,
+                "wifi": true,
+                "spa": true
+            },
+            "keywords_tags": [
+                "mariage",
+                "événements",
+                "luxe",
+                "piscine",
+                "sauna",
+                "photo"
+            ],
+            "nearby": [
+                "Bord du Lac Kivu"
+            ],
+            "booking_link": "/hotel/bach-palace"
+        },
+        {
+            "slug": "hotel-la-roche",
+            "name": "Hôtel La Roche",
+            "also_known_as": [
+                "Laroche",
+                "La Roche"
+            ],
+            "category": "Classique / Spacieux",
+            "address": {
+                "street": "Petite Corniche de Nyo-Fu",
+                "area": "Nyo-Fu",
+                "city": "Bukavu",
+                "country": "RDC",
+                "landmark": "Directement au bord du lac"
+            },
+            "gps": {
+                "latitude": null,
+                "longitude": null
+            },
+            "contact": {
+                "phone": null,
+                "email": null,
+                "website": "larochehotel.me"
+            },
+            "description": {
+                "summary": "Établissement spacieux situé sur la Petite Corniche, offrant un accès direct et privilégié au lac Kivu.",
+                "detailed": "Très apprécié pour sa vue imprenable et son cadre tranquille. Les chambres sont vastes. La réservation en ligne est possible via leur site web."
+            },
+            "features": {
+                "rooms": {
+                    "total": 30,
+                    "types": [
+                        {
+                            "name": "Chambres Spacieuses",
+                            "description": "Chambres vastes et confortables.",
+                            "price_range_usd": "100-180"
+                        },
+                        {
+                            "name": "Chambres Vue Lac",
+                            "description": "Chambres offrant une vue directe sur le lac.",
+                            "price_range_usd": "150-220"
+                        }
+                    ]
+                },
+                "amenities": [
+                    {
+                        "category": "Général",
+                        "items": [
+                            "Parking",
+                            "Accès direct lac",
+                            "Jardin"
+                        ]
+                    },
+                    {
+                        "category": "Nourriture & Boissons",
+                        "items": [
+                            "Restaurant",
+                            "Bar"
+                        ]
+                    },
+                    {
+                        "category": "Services",
+                        "items": [
+                            "Réception"
+                        ]
+                    },
+                    {
+                        "category": "Équipement chambre",
+                        "items": [
+                            "TV",
+                            "Wi-Fi"
+                        ]
+                    }
+                ],
+                "pools": false,
+                "gym": false,
+                "wifi": true,
+                "spa": false
+            },
+            "keywords_tags": [
+                "corniche",
+                "spacieux",
+                "vue directe",
+                "tranquille"
+            ],
+            "nearby": [
+                "Petite Corniche de Nyo-Fu",
+                "Lac Kivu"
+            ],
+            "booking_link": "/hotel/hotel-la-roche"
+        },
+        {
+            "slug": "hotel-beaux-lieux",
+            "name": "Hotel Beaux Lieux",
+            "also_known_as": [
+                "Beaux Lieux",
+                "Beau Lieu"
+            ],
+            "category": "Économique / Familial",
+            "address": {
+                "street": "Avenue de La Montagne",
+                "area": "Ibanda",
+                "city": "Bukavu",
+                "country": "RDC",
+                "landmark": "Proche du centre"
+            },
+            "gps": {
+                "latitude": -2.49226,
+                "longitude": 28.88895
+            },
+            "contact": {
+                "phone": "+243 993 365 675",
+                "email": null,
+                "website": null
+            },
+            "description": {
+                "summary": "Option d'hébergement plus simple et familiale. Idéal pour les petits budgets recherchant un endroit accueillant.",
+                "detailed": "Établissement modeste mais propre. Parfait pour les voyageurs autonomes."
+            },
+            "features": {
+                "rooms": {
+                    "total": 15,
+                    "types": [
+                        {
+                            "name": "Chambres Basiques",
+                            "description": "Chambres simples et fonctionnelles.",
+                            "price_range_usd": "30-60"
+                        },
+                        {
+                            "name": "Chambres Familiales",
+                            "description": "Chambres plus grandes pour les familles.",
+                            "price_range_usd": "50-80"
+                        }
+                    ]
+                },
+                "amenities": [
+                    {
+                        "category": "Général",
+                        "items": [
+                            "Parking"
+                        ]
+                    },
+                    {
+                        "category": "Nourriture & Boissons",
+                        "items": [
+                            "Petit-déjeuner"
+                        ]
+                    },
+                    {
+                        "category": "Services",
+                        "items": [
+                            "Réception"
+                        ]
+                    },
+                    {
+                        "category": "Équipement chambre",
+                        "items": [
+                            "Wi-Fi",
+                            "Chambres spacieuses"
+                        ]
+                    }
+                ],
+                "pools": false,
+                "gym": false,
+                "wifi": true,
+                "spa": false
+            },
+            "keywords_tags": [
+                "pas cher",
+                "familial",
+                "simple",
+                "petit budget"
+            ],
+            "nearby": [
+                "Avenue de la Montagne"
+            ],
+            "booking_link": "/hotel/hotel-beaux-lieux"
+        },
+        {
+            "slug": "cap-nguba",
+            "name": "CAP Nguba (Centre d'Accueil Protestant)",
+            "also_known_as": [
+                "CAP NGUBA",
+                "Cap Nguba"
+            ],
+            "category": "Centre d'accueil / Historique",
+            "address": {
+                "street": "Avenue Lundula, Muhumba",
+                "area": "Muhumba",
+                "city": "Bukavu",
+                "country": "RDC",
+                "landmark": "Proche de la frontière Ruzizi"
+            },
+            "gps": {
+                "latitude": null,
+                "longitude": null
+            },
+            "contact": {
+                "phone": "+243 994 678 231",
+                "email": null,
+                "website": null
+            },
+            "description": {
+                "summary": "Bâtisse historique de l'hôtellerie locale, très bien positionnée sur l'artère principale près de la frontière Ruzizi.",
+                "detailed": "Centre d'accueil tenu par une mission protestante. Offre un hébergement simple dans un cadre chargé d'histoire."
+            },
+            "features": {
+                "rooms": {
+                    "total": 20,
+                    "types": [
+                        {
+                            "name": "Chambres Simples",
+                            "description": "Hébergement de base.",
+                            "price_range_usd": "30-60"
+                        },
+                        {
+                            "name": "Dortoirs",
+                            "description": "Hébergement en dortoir pour les groupes.",
+                            "price_range_usd": "15-30"
+                        }
+                    ]
+                },
+                "amenities": [
+                    {
+                        "category": "Général",
+                        "items": [
+                            "Parking",
+                            "Jardin"
+                        ]
+                    },
+                    {
+                        "category": "Nourriture & Boissons",
+                        "items": [
+                            "Réfectoire"
+                        ]
+                    },
+                    {
+                        "category": "Services",
+                        "items": [
+                            "Accueil de groupes"
+                        ]
+                    }
+                ],
+                "pools": false,
+                "gym": false,
+                "wifi": false,
+                "spa": false
+            },
+            "keywords_tags": [
+                "historique",
+                "protestant",
+                "frontière",
+                "Ruzizi",
+                "groupes",
+                "authentique"
+            ],
+            "nearby": [
+                "Frontière Ruzizi (Rwanda)"
+            ],
+            "booking_link": "/hotel/cap-nguba"
+        },
+        {
+            "slug": "centre-spirituel-amani",
+            "name": "Centre Spirituel Amani",
+            "also_known_as": [
+                "Centre AMANI",
+                "Amani"
+            ],
+            "category": "Recueillement / Méditation",
+            "address": {
+                "street": "Pointe de Nya Lukemba, Presqu'île Muhumba",
+                "area": "Muhumba",
+                "city": "Bukavu",
+                "country": "RDC",
+                "landmark": "Corniche de Nya-Lukemba"
+            },
+            "gps": {
+                "latitude": null,
+                "longitude": null
+            },
+            "contact": {
+                "phone": null,
+                "email": null,
+                "website": null
+            },
+            "description": {
+                "summary": "ATTENTION : Ce n'est PAS un hôtel classique. C'est un espace de recueillement, de silence et de méditation, géré par les Jésuites.",
+                "detailed": "Cadre idyllique et paisible au bord du lac. Parfaitement organisé pour les séjours de groupes, retraites spirituelles ou séminaires. L'hébergement se fait en dortoirs (chambres partagées)."
+            },
+            "features": {
+                "rooms": {
+                    "total": 10,
+                    "types": [
+                        {
+                            "name": "Dortoirs collectifs",
+                            "description": "Hébergement en chambres partagées pour les retraites et séminaires.",
+                            "price_range_usd": "15-40"
+                        }
+                    ]
+                },
+                "amenities": [
+                    {
+                        "category": "Général",
+                        "items": [
+                            "Jardin magnifique",
+                            "Accès direct lac",
+                            "Cadre silencieux"
+                        ]
+                    },
+                    {
+                        "category": "Nourriture & Boissons",
+                        "items": [
+                            "Cuisine communautaire"
+                        ]
+                    },
+                    {
+                        "category": "Spiritualité",
+                        "items": [
+                            "Chapelle",
+                            "Espaces de méditation"
+                        ]
+                    }
+                ],
+                "pools": false,
+                "gym": false,
+                "wifi": false,
+                "spa": false
+            },
+            "keywords_tags": [
+                "silence",
+                "méditation",
+                "jésuites",
+                "retraite",
+                "dortoir",
+                "groupe",
+                "spirituel",
+                "calme absolu"
+            ],
+            "nearby": [
+                "Presqu'île Muhumba",
+                "Lac Kivu"
+            ],
+            "booking_link": "/hotel/centre-spirituel-amani"
+        }
+    ]
+}
