@@ -1,24 +1,25 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useChat } from '../useChat';
 import { getApiKey, saveApiKey, clearApiKey } from '../gemini';
+import { speakText, stopSpeaking, startRecording } from '../elevenlabs';
+
+// ─── Avatars ──────────────────────────────────────────────────────────────────
 
 const BotAvatar = () => {
   const [imgError, setImgError] = useState(false);
   return (
     <div className="cw-avatar bot overflow-hidden flex items-center justify-center bg-[var(--surface-hover)]">
       {!imgError ? (
-        <img
-          src="/panorama.png"
-          alt="Panorama Assist"
+        <img src="/panorama.png" alt="Panorama Assist"
           onError={() => setImgError(true)}
-          style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
-        />
+          style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
       ) : (
         <span className="text-[10px] font-extrabold text-[var(--accent-color)] select-none">P</span>
       )}
     </div>
   );
 };
+
 const UserAvatar = () => (
   <div className="cw-avatar user">
     <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -26,6 +27,30 @@ const UserAvatar = () => (
     </svg>
   </div>
 );
+
+// ─── Icônes ───────────────────────────────────────────────────────────────────
+
+const IconSpeaker = () => (
+  <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round"
+      d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
+  </svg>
+);
+
+const IconStop = () => (
+  <svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24">
+    <rect x="4" y="4" width="16" height="16" rx="3" />
+  </svg>
+);
+
+const IconMic = ({ size = 16 }) => (
+  <svg width={size} height={size} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round"
+      d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+  </svg>
+);
+
+// ─── Rendu Markdown ───────────────────────────────────────────────────────────
 
 function renderMd(text) {
   return text
@@ -37,6 +62,8 @@ function renderMd(text) {
     .replace(/\n/g, '<br/>');
 }
 
+// ─── Suggestions rapides ──────────────────────────────────────────────────────
+
 import { ConciergeBell, Utensils, Waves, Van } from 'lucide-react';
 
 const SUGGESTIONS = [
@@ -46,6 +73,52 @@ const SUGGESTIONS = [
   { icon: Van, label: 'Navette aéroport' },
 ];
 
+// ─── Barre audio flottante (visible seulement quand lecture en cours) ──────────
+
+function AudioBar({ playingMsg, onStop }) {
+  if (!playingMsg) return null;
+
+  // Tronquer le texte pour affichage
+  const preview = playingMsg.text?.slice(0, 60).replace(/\*\*/g, '') + (playingMsg.text?.length > 60 ? '…' : '');
+
+  return (
+    <div className="cw-audio-bar">
+      <div className="cw-audio-bar-waves">
+        <span /><span /><span /><span /><span />
+      </div>
+      <div className="cw-audio-bar-text">{preview}</div>
+      <button className="cw-audio-bar-stop" onClick={onStop} title="Arrêter la lecture">
+        <IconStop />
+      </button>
+    </div>
+  );
+}
+
+// ─── Bouton TTS sur message bot ───────────────────────────────────────────────
+
+function SpeakButton({ msg, ttsState, onSpeak }) {
+  const state = ttsState[msg.id] || 'idle';
+  if (msg.streaming || !msg.text || msg.error) return null;
+
+  // N'afficher le bouton que quand idle ou en état quelconque (toujours visible)
+  return (
+    <button
+      className={`cw-speak-btn ${state === 'playing' ? 'playing' : ''} ${state === 'loading' ? 'loading' : ''}`}
+      onClick={() => onSpeak(msg)}
+      title={state === 'playing' ? 'Arrêter' : state === 'loading' ? 'Chargement…' : 'Lire à voix haute'}
+    >
+      {state === 'loading' ? (
+        <span className="cw-speak-dots"><span/><span/><span/></span>
+      ) : state === 'playing' ? (
+        <><IconStop /><span>Arrêter</span></>
+      ) : (
+        <><IconSpeaker /><span>Écouter</span></>
+      )}
+    </button>
+  );
+}
+
+// ─── Composant principal ──────────────────────────────────────────────────────
 
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
@@ -54,11 +127,23 @@ export default function ChatWidget() {
   const endRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Settings state
+  // Settings
   const [showSettings, setShowSettings] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState('');
 
-  // Load key when panel opens or settings is toggled
+  // TTS : { [msgId]: 'idle'|'loading'|'playing'|'stopped'|'error' }
+  const [ttsState, setTtsState] = useState({});
+
+  // STT
+  const [recState, setRecState] = useState('idle'); // idle | recording
+  const [interimText, setInterimText] = useState(''); // texte temps réel
+  const recorderRef = useRef(null);
+
+  // Message actuellement lu (pour la barre audio)
+  const playingMsg = messages.find(m => ttsState[m.id] === 'playing' || ttsState[m.id] === 'loading') || null;
+
+  // ── Effets ────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (open) {
       const stored = localStorage.getItem('panorama_assist_api_key') || localStorage.getItem('hackerbot_api_key') || '';
@@ -67,18 +152,40 @@ export default function ChatWidget() {
   }, [open, showSettings]);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
-  useEffect(() => { if (open && !showSettings) setTimeout(() => inputRef.current?.focus(), 200); }, [open, showSettings]);
+  useEffect(() => {
+    if (open && !showSettings) setTimeout(() => inputRef.current?.focus(), 200);
+  }, [open, showSettings]);
+
+  // Arrêter audio quand le widget est fermé
+  useEffect(() => {
+    if (!open) {
+      stopSpeaking((id, state) => setTtsState(prev => ({ ...prev, [id]: state })));
+    }
+  }, [open]);
+
+  // ── Envoi message ─────────────────────────────────────────────────────────
 
   const submit = useCallback((e) => {
     e?.preventDefault();
-    if (!input.trim() || isLoading) return;
-    sendMessage(input.trim());
+    const text = input.trim() || interimText.trim();
+    if (!text || isLoading) return;
+    // Arrêter l'enregistrement avant d'envoyer
+    if (recState === 'recording') {
+      recorderRef.current?.stop();
+      recorderRef.current = null;
+      setRecState('idle');
+      setInterimText('');
+    }
+    sendMessage(text);
     setInput('');
-  }, [input, isLoading, sendMessage]);
+    setInterimText('');
+  }, [input, interimText, isLoading, recState, sendMessage]);
 
   const handleKey = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); }
   };
+
+  // ── Settings ──────────────────────────────────────────────────────────────
 
   const handleSaveSettings = (e) => {
     e.preventDefault();
@@ -93,6 +200,54 @@ export default function ChatWidget() {
     resetSession();
     setShowSettings(false);
   };
+
+  // ── TTS ───────────────────────────────────────────────────────────────────
+
+  const handleSpeak = useCallback((msg) => {
+    speakText(msg.text, msg.id, (id, state) => {
+      setTtsState(prev => ({ ...prev, [id]: state }));
+    });
+  }, []);
+
+  const handleStopAudio = useCallback(() => {
+    stopSpeaking((id, state) => setTtsState(prev => ({ ...prev, [id]: state })));
+  }, []);
+
+  // ── STT (Web Speech API — temps réel) ────────────────────────────────────
+
+  const handleMicToggle = useCallback(() => {
+    if (recState === 'recording') {
+      recorderRef.current?.stop();
+      recorderRef.current = null;
+      // Valider le texte intermédiaire dans le champ
+      if (interimText.trim()) {
+        setInput(prev => (prev ? prev + ' ' + interimText.trim() : interimText.trim()));
+        setInterimText('');
+      }
+      setRecState('idle');
+    } else {
+      setInterimText('');
+      const recorder = startRecording({
+        onInterim: (text) => setInterimText(text),
+        onFinal: (text) => {
+          setInterimText('');
+          setInput(text);
+        },
+        onStateChange: (state) => setRecState(state),
+        onError: (err) => {
+          console.error('[STT]', err);
+          setRecState('idle');
+          setInterimText('');
+        },
+      });
+      recorderRef.current = recorder;
+    }
+  }, [recState, interimText]);
+
+  // Valeur affichée dans le textarea : texte saisi ou transcription en cours
+  const displayValue = recState === 'recording' ? (interimText || input) : input;
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <>
@@ -118,11 +273,15 @@ export default function ChatWidget() {
             <img src="/panorama.png" alt="Panorama Assist" className="cw-header-logo" />
             <div>
               <div className="cw-header-title">Panorama Assist</div>
-              <div className="cw-header-status"><span className="cw-dot" /> En ligne</div>
+              <div className="cw-header-status">
+                <span className="cw-dot" /> En ligne
+                <span style={{ color: 'var(--accent-color)', fontSize: '0.65rem', marginLeft: '0.3rem' }}>· 🎙 AI Voice</span>
+              </div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: '0.25rem' }}>
-            <button className={`cw-clear-btn ${showSettings ? 'active' : ''}`} onClick={() => setShowSettings(s => !s)} title="Paramètres Clé API">
+            <button className={`cw-clear-btn ${showSettings ? 'active' : ''}`}
+              onClick={() => setShowSettings(s => !s)} title="Paramètres">
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.43l-1.003.828c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.43l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.991l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.28z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -137,46 +296,43 @@ export default function ChatWidget() {
         </div>
 
         {showSettings ? (
+          /* ── Settings Panel ── */
           <div className="cw-settings">
-            <h3 className="cw-settings-title">Paramètres Panorama Assist</h3>
+            <h3 className="cw-settings-title">Paramètres</h3>
             <p className="cw-settings-desc">
-              L'assistant utilise l'API Google Gemini (gemini-2.5-flash). Entrez votre clé API personnelle pour utiliser votre quota propre. Obtenez une clé gratuite sur <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)' }}>AI Studio</a>.
+              L'assistant utilise <strong>Gemini</strong> pour les réponses et <strong>ElevenLabs Flash</strong> pour la voix ultra-rapide.
             </p>
-
             <form onSubmit={handleSaveSettings} className="cw-field-group">
               <label className="cw-label" htmlFor="apiKeyInput">Clé API Gemini</label>
-              <input
-                id="apiKeyInput"
-                type="password"
-                className="cw-settings-input"
+              <input id="apiKeyInput" type="password" className="cw-settings-input"
                 placeholder="Entrez votre clé API Gemini…"
-                value={apiKeyInput}
-                onChange={(e) => setApiKeyInput(e.target.value)}
-              />
-              
+                value={apiKeyInput} onChange={(e) => setApiKeyInput(e.target.value)} />
               {localStorage.getItem('panorama_assist_api_key') || localStorage.getItem('hackerbot_api_key') ? (
                 <span className="cw-key-badge">Clé API personnalisée active</span>
               ) : (
                 <span className="cw-key-badge custom">Clé API par défaut active</span>
               )}
-
               <div className="cw-settings-buttons">
-                <button type="submit" className="cw-btn cw-btn-primary" disabled={!apiKeyInput.trim()}>
-                  Sauvegarder
-                </button>
-                <button type="button" className="cw-btn cw-btn-secondary" onClick={handleResetSettings}>
-                  Réinitialiser
-                </button>
+                <button type="submit" className="cw-btn cw-btn-primary" disabled={!apiKeyInput.trim()}>Sauvegarder</button>
+                <button type="button" className="cw-btn cw-btn-secondary" onClick={handleResetSettings}>Réinitialiser</button>
               </div>
             </form>
-
-            <div style={{ marginTop: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-              Vous pouvez obtenir une clé d'API gratuite sur <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', textDecoration: 'underline' }}>Google AI Studio</a>.
+            <div className="cw-el-info">
+              <span style={{ fontSize: '1.1rem' }}>🎙</span>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '0.8rem', marginBottom: '0.2rem' }}>ElevenLabs Flash v2.5</div>
+                <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                  Synthèse vocale ultra-rapide (~75ms). Reconnaissance vocale temps réel via Web Speech API.
+                </div>
+              </div>
+            </div>
+            <div style={{ marginTop: 'auto', fontSize: '0.73rem', color: 'var(--text-muted)' }}>
+              Clé Gemini gratuite sur <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)' }}>Google AI Studio</a>.
             </div>
           </div>
         ) : (
           <>
-            {/* Messages */}
+            {/* ── Messages ── */}
             <div className="cw-messages">
               {messages.length === 0 && (
                 <div className="cw-welcome flex flex-col items-center">
@@ -184,10 +340,10 @@ export default function ChatWidget() {
                   <p className="cw-welcome-text mt-3">Bonjour ! Je suis votre assistant exclusif.<br />Comment puis-je vous aider ?</p>
                   <div className="cw-chips">
                     {SUGGESTIONS.map(s => {
-                      const IconComponent = s.icon;
+                      const I = s.icon;
                       return (
                         <button key={s.label} className="cw-chip" onClick={() => sendMessage(s.label)}>
-                          <IconComponent size={14} style={{ marginRight: '6px', verticalAlign: 'middle', display: 'inline-block' }} />
+                          <I size={14} style={{ marginRight: '6px', verticalAlign: 'middle', display: 'inline-block' }} />
                           <span>{s.label}</span>
                         </button>
                       );
@@ -195,40 +351,66 @@ export default function ChatWidget() {
                   </div>
                 </div>
               )}
+
               {messages.map(msg => (
                 <div key={msg.id} className={`cw-msg-wrap ${msg.role === 'user' ? 'user' : ''}`}>
                   {msg.role === 'user' ? <UserAvatar /> : <BotAvatar />}
-                  <div className={`cw-bubble ${msg.role}${msg.error ? ' error' : ''}`}>
-                    {msg.role === 'bot'
-                      ? (msg.text === '' && msg.streaming ? (
-                          <div className="cw-typing">
-                            <span /><span /><span />
-                          </div>
-                        ) : (
-                          <div dangerouslySetInnerHTML={{ __html: `<p>${renderMd(msg.text || (msg.error ? '⚠️ ' + msg.text : ''))}</p>` }} />
-                        ))
-                      : <span>{msg.text}</span>
-                    }
+                  <div className={`cw-bubble-wrap ${msg.role}`}>
+                    <div className={`cw-bubble ${msg.role}${msg.error ? ' error' : ''}`}>
+                      {msg.role === 'bot'
+                        ? (msg.text === '' && msg.streaming
+                            ? <div className="cw-typing"><span /><span /><span /></div>
+                            : <div dangerouslySetInnerHTML={{ __html: `<p>${renderMd(msg.text || '')}</p>` }} />
+                          )
+                        : <span>{msg.text}</span>
+                      }
+                    </div>
+                    {/* Bouton Écouter — affiché sous chaque réponse bot terminée */}
+                    {msg.role === 'bot' && !msg.error && (
+                      <SpeakButton msg={msg} ttsState={ttsState} onSpeak={handleSpeak} />
+                    )}
                   </div>
                 </div>
               ))}
               <div ref={endRef} />
             </div>
 
-            {/* Input */}
+            {/* ── Barre audio flottante (visible uniquement pendant la lecture) ── */}
+            <AudioBar playingMsg={playingMsg} onStop={handleStopAudio} />
+
+            {/* ── Input ── */}
             <div className="cw-input-wrap">
               <form className="cw-form" onSubmit={submit}>
+                {/* Bouton microphone */}
+                <button
+                  type="button"
+                  className={`cw-mic-btn ${recState === 'recording' ? 'recording' : ''}`}
+                  onClick={handleMicToggle}
+                  disabled={isLoading}
+                  title={recState === 'recording' ? 'Arrêter l\'enregistrement' : 'Dicter (reconnaissance vocale)'}
+                >
+                  {recState === 'recording'
+                    ? <><IconMic size={15} /><span className="cw-mic-dot" /></>
+                    : <IconMic size={15} />
+                  }
+                </button>
+
                 <textarea
                   ref={inputRef}
-                  className="cw-input"
+                  className={`cw-input ${recState === 'recording' ? 'interim' : ''}`}
                   rows={1}
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
+                  value={displayValue}
+                  onChange={e => {
+                    if (recState !== 'recording') setInput(e.target.value);
+                  }}
                   onKeyDown={handleKey}
-                  placeholder="Posez votre question…"
+                  placeholder={recState === 'recording' ? '🎙 Parlez…' : 'Posez votre question…'}
                   disabled={isLoading}
+                  readOnly={recState === 'recording'}
                 />
-                <button type="submit" className="cw-send" disabled={!input.trim() || isLoading}>
+
+                <button type="submit" className="cw-send"
+                  disabled={(!displayValue.trim()) || isLoading}>
                   <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
                   </svg>

@@ -109,14 +109,62 @@ body {
 .cw-bubble.bot.error { background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.2); color:#f87171; }
 .cw-bubble.bot.error strong { color:#f87171; }
 
-.cw-input-wrap { padding:1rem; border-top:1px solid var(--border-color); background:var(--surface-app); }
-.cw-form { display:flex; gap:.5rem; align-items:flex-end; background:var(--bg-app); border:1px solid var(--border-color); border-radius:18px; padding:.35rem; transition:border-color .2s; }
+.cw-input-wrap { padding:.6rem 1rem .9rem; border-top:1px solid var(--border-color); background:var(--surface-app); }
+.cw-form { display:flex; gap:.4rem; align-items:flex-end; background:var(--bg-app); border:1px solid var(--border-color); border-radius:18px; padding:.35rem; transition:border-color .2s; }
 .cw-form:focus-within { border-color:var(--accent-color); }
-.cw-input { flex:1; background:transparent; border:none; color:var(--text-main); font-size:.95rem; padding:.65rem .75rem; outline:none; resize:none; max-height:100px; font-family:inherit; }
+.cw-input { flex:1; background:transparent; border:none; color:var(--text-main); font-size:.95rem; padding:.65rem .75rem; outline:none; resize:none; max-height:100px; font-family:inherit; transition:color .2s; }
 .cw-input::placeholder { color:var(--text-muted); }
+.cw-input.interim { color:var(--accent-color); font-style:italic; }
 .cw-send { background:var(--accent-color); color:var(--text-on-accent); border:none; width:36px; height:36px; border-radius:14px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:all .2s; }
 .cw-send:hover:not(:disabled) { transform:scale(1.05); }
-.cw-send:disabled { opacity:.5; cursor:not-allowed; }
+.cw-send:disabled { opacity:.4; cursor:not-allowed; }
+
+/* ── Microphone (STT temps réel) ── */
+.cw-mic-btn { position:relative; background:transparent; border:none; color:var(--text-muted); cursor:pointer; width:34px; height:34px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all .2s; }
+.cw-mic-btn:hover:not(:disabled) { background:rgba(197,168,128,.1); color:var(--accent-color); }
+.cw-mic-btn.recording { background:rgba(239,68,68,.12); color:#ef4444; }
+.cw-mic-btn.recording::before { content:''; position:absolute; inset:-3px; border-radius:15px; border:2px solid #ef4444; animation:cwMicRing 1s ease-out infinite; }
+.cw-mic-btn:disabled { opacity:.4; cursor:not-allowed; }
+.cw-mic-dot { position:absolute; top:5px; right:5px; width:7px; height:7px; background:#ef4444; border-radius:50%; border:1.5px solid var(--bg-app); animation:cwBlink .7s ease-in-out infinite alternate; }
+@keyframes cwMicRing { 0%{opacity:.8;transform:scale(1);} 100%{opacity:0;transform:scale(1.35);} }
+@keyframes cwBlink { from{opacity:1;} to{opacity:.3;} }
+
+/* ── Bouton Speaker / TTS ── */
+.cw-bubble-wrap { display:flex; flex-direction:column; gap:.35rem; max-width:calc(100% - 36px); }
+.cw-bubble-wrap.user { align-items:flex-end; }
+.cw-bubble-wrap.bot { align-items:flex-start; }
+
+.cw-speak-btn { display:inline-flex; align-items:center; gap:.35rem; background:rgba(255,255,255,.04); border:1px solid var(--border-color); color:var(--text-muted); cursor:pointer; padding:.28rem .65rem; border-radius:99px; font-size:.72rem; font-weight:600; transition:all .2s; line-height:1; }
+.cw-speak-btn:hover { background:rgba(197,168,128,.1); border-color:var(--accent-color); color:var(--accent-color); transform:scale(1.02); }
+.cw-speak-btn.playing { background:rgba(197,168,128,.14); border-color:var(--accent-color); color:var(--accent-color); }
+.cw-speak-btn.loading { opacity:.65; cursor:wait; }
+
+/* Points de chargement du bouton speak */
+.cw-speak-dots { display:flex; gap:3px; align-items:center; padding:1px 0; }
+.cw-speak-dots span { width:4px; height:4px; background:currentColor; border-radius:50%; animation:cwDot 1.2s infinite ease-in-out both; }
+.cw-speak-dots span:nth-child(1){animation-delay:-.32s;}
+.cw-speak-dots span:nth-child(2){animation-delay:-.16s;}
+@keyframes cwDot { 0%,80%,100%{transform:scale(0);} 40%{transform:scale(1);} }
+
+/* ── Barre audio flottante ── */
+.cw-audio-bar { display:flex; align-items:center; gap:.6rem; padding:.55rem .9rem; background:linear-gradient(135deg,rgba(197,168,128,.12),rgba(197,168,128,.06)); border:1px solid rgba(197,168,128,.25); border-radius:14px; margin:.2rem 1rem .5rem; backdrop-filter:blur(4px); animation:cwBarIn .25s cubic-bezier(.34,1.56,.64,1); }
+@keyframes cwBarIn { from{opacity:0;transform:translateY(6px) scale(.97);} to{opacity:1;transform:none;} }
+
+.cw-audio-bar-waves { display:flex; gap:2.5px; align-items:center; flex-shrink:0; }
+.cw-audio-bar-waves span { width:3px; background:var(--accent-color); border-radius:3px; animation:cwWave 1s ease-in-out infinite; }
+.cw-audio-bar-waves span:nth-child(1){height:6px; animation-delay:0s;}
+.cw-audio-bar-waves span:nth-child(2){height:10px; animation-delay:.1s;}
+.cw-audio-bar-waves span:nth-child(3){height:14px; animation-delay:.2s;}
+.cw-audio-bar-waves span:nth-child(4){height:10px; animation-delay:.3s;}
+.cw-audio-bar-waves span:nth-child(5){height:6px; animation-delay:.4s;}
+@keyframes cwWave { 0%,100%{transform:scaleY(.4);} 50%{transform:scaleY(1);} }
+
+.cw-audio-bar-text { flex:1; font-size:.75rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cw-audio-bar-stop { background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.2); color:#f87171; cursor:pointer; width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all .2s; }
+.cw-audio-bar-stop:hover { background:rgba(239,68,68,.2); }
+
+/* Info ElevenLabs dans settings */
+.cw-el-info { display:flex; align-items:flex-start; gap:.75rem; background:rgba(197,168,128,.06); border:1px solid rgba(197,168,128,.15); border-radius:12px; padding:.75rem 1rem; margin-top:.5rem; }
 
 .cw-typing { display:flex; gap:4px; padding:4px 0; }
 .cw-typing span { width:6px; height:6px; background:var(--text-muted); border-radius:50%; animation:cwBounce 1.4s infinite ease-in-out both; }
