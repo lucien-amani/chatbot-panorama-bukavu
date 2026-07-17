@@ -34,7 +34,7 @@ export default function Footer() {
       </div>
       <div className="footer-bottom">
         <span>© {new Date().getFullYear()} Hôtel Panorama Bukavu. Tous droits réservés.</span>
-        <span className="footer-powered">Propulsé par <strong>Panorama Assist</strong> ✦ Gemini AI</span>
+        <span className="footer-powered">Propulsé par <strong>Panorama Assist</strong> Roland Munganga</span>
       </div>
     </footer>
   );

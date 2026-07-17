@@ -2,12 +2,23 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useChat } from '../useChat';
 import { getApiKey, saveApiKey, clearApiKey } from '../gemini';
 
-/* ── Icons ─────── */
-const BotAvatar = () => (
-  <div className="cw-avatar bot">
-    <img src="/panorama.png" alt="Panorama Assist" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
-  </div>
-);
+const BotAvatar = () => {
+  const [imgError, setImgError] = useState(false);
+  return (
+    <div className="cw-avatar bot overflow-hidden flex items-center justify-center bg-[var(--surface-hover)]">
+      {!imgError ? (
+        <img
+          src="/panorama.png"
+          alt="Panorama Assist"
+          onError={() => setImgError(true)}
+          style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+        />
+      ) : (
+        <span className="text-[10px] font-extrabold text-[var(--accent-color)] select-none">P</span>
+      )}
+    </div>
+  );
+};
 const UserAvatar = () => (
   <div className="cw-avatar user">
     <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -129,7 +140,7 @@ export default function ChatWidget() {
           <div className="cw-settings">
             <h3 className="cw-settings-title">Paramètres Panorama Assist</h3>
             <p className="cw-settings-desc">
-              L'assistant utilise l'API Google Gemini. Si la clé par défaut est bloquée ou signalée comme divulguée, vous pouvez configurer votre propre clé d'API personnelle ci-dessous.
+              L'assistant utilise l'API Google Gemini (gemini-2.5-flash). Entrez votre clé API personnelle pour utiliser votre quota propre. Obtenez une clé gratuite sur <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)' }}>AI Studio</a>.
             </p>
 
             <form onSubmit={handleSaveSettings} className="cw-field-group">
@@ -138,7 +149,7 @@ export default function ChatWidget() {
                 id="apiKeyInput"
                 type="password"
                 className="cw-settings-input"
-                placeholder="Entrez votre clé API (AIzaSy...)"
+                placeholder="Entrez votre clé API Gemini…"
                 value={apiKeyInput}
                 onChange={(e) => setApiKeyInput(e.target.value)}
               />
@@ -168,9 +179,9 @@ export default function ChatWidget() {
             {/* Messages */}
             <div className="cw-messages">
               {messages.length === 0 && (
-                <div className="cw-welcome">
-                  <img src="/panorama.png" alt="" className="cw-welcome-logo" />
-                  <p className="cw-welcome-text">Bonjour ! Je suis votre assistant exclusif.<br />Comment puis-je vous aider ?</p>
+                <div className="cw-welcome flex flex-col items-center">
+                  <BotAvatar />
+                  <p className="cw-welcome-text mt-3">Bonjour ! Je suis votre assistant exclusif.<br />Comment puis-je vous aider ?</p>
                   <div className="cw-chips">
                     {SUGGESTIONS.map(s => {
                       const IconComponent = s.icon;
@@ -187,24 +198,20 @@ export default function ChatWidget() {
               {messages.map(msg => (
                 <div key={msg.id} className={`cw-msg-wrap ${msg.role === 'user' ? 'user' : ''}`}>
                   {msg.role === 'user' ? <UserAvatar /> : <BotAvatar />}
-                  <div className={`cw-bubble ${msg.role}`}>
+                  <div className={`cw-bubble ${msg.role}${msg.error ? ' error' : ''}`}>
                     {msg.role === 'bot'
-                      ? <div dangerouslySetInnerHTML={{ __html: `<p>${renderMd(msg.text || '')}</p>` }} />
+                      ? (msg.text === '' && msg.streaming ? (
+                          <div className="cw-typing">
+                            <span /><span /><span />
+                          </div>
+                        ) : (
+                          <div dangerouslySetInnerHTML={{ __html: `<p>${renderMd(msg.text || (msg.error ? '⚠️ ' + msg.text : ''))}</p>` }} />
+                        ))
                       : <span>{msg.text}</span>
                     }
                   </div>
                 </div>
               ))}
-              {isLoading && (
-                <div className="cw-msg-wrap">
-                  <BotAvatar />
-                  <div className="cw-bubble bot">
-                    <div className="cw-typing">
-                      <span /><span /><span />
-                    </div>
-                  </div>
-                </div>
-              )}
               <div ref={endRef} />
             </div>
 

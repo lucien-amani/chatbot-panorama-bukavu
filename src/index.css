@@ -106,6 +106,8 @@ body {
 .cw-bubble.bot strong { color:var(--accent-color); font-weight:700; }
 .cw-bubble.bot ul { margin-left:1.25rem; margin-bottom:.5rem; }
 .cw-bubble.bot li { margin-bottom:.2rem; }
+.cw-bubble.bot.error { background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.2); color:#f87171; }
+.cw-bubble.bot.error strong { color:#f87171; }
 
 .cw-input-wrap { padding:1rem; border-top:1px solid var(--border-color); background:var(--surface-app); }
 .cw-form { display:flex; gap:.5rem; align-items:flex-end; background:var(--bg-app); border:1px solid var(--border-color); border-radius:18px; padding:.35rem; transition:border-color .2s; }
@@ -140,3 +142,100 @@ body {
 .cw-key-badge.custom { background: rgba(197, 168, 128, 0.1); color: var(--accent-color); }
 .cw-clear-btn.active { color: var(--accent-color); background: rgba(197, 168, 128, 0.1); }
 
+
+/* ── CUSTOM SELECTABLE SYSTEM ALERTS ── */
+.custom-alert-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 9, 14, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  animation: customAlertFadeIn 0.2s ease;
+}
+.custom-alert-box {
+  background: var(--surface-app);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  width: 90%;
+  max-width: 440px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-lg);
+  transform: scale(0.95);
+  animation: customAlertSlideUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.custom-alert-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.custom-alert-icon {
+  font-size: 1.5rem;
+}
+.custom-alert-header h3 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0;
+}
+.custom-alert-body {
+  margin-bottom: 1.5rem;
+}
+.custom-alert-text {
+  font-size: 0.9rem;
+  color: var(--text-main);
+  line-height: 1.5;
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.75rem;
+  max-height: 200px;
+  overflow-y: auto;
+  user-select: text; /* Allow manual selection as well */
+  word-break: break-word;
+}
+.custom-alert-footer {
+  display: flex;
+  gap: 0.75rem;
+}
+.custom-alert-close-btn, .custom-alert-copy-btn {
+  flex: 1;
+  padding: 0.65rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+  text-align: center;
+}
+.custom-alert-close-btn {
+  background: var(--surface-hover);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+}
+.custom-alert-close-btn:hover {
+  background: var(--border-color);
+}
+.custom-alert-copy-btn {
+  background: var(--accent-color);
+  color: var(--text-on-accent);
+}
+.custom-alert-copy-btn:hover {
+  background: var(--accent-hover);
+}
+.custom-alert-overlay.fade-out {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+@keyframes customAlertFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes customAlertSlideUp {
+  to { transform: scale(1); }
+}

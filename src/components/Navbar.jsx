@@ -95,8 +95,8 @@ export default function Navbar() {
               </span>
             </button>
 
-            {/* Si utilisateur connecté ET pas admin : afficher profil */}
-            {user && !user.est_admin ? (
+            {/* Si utilisateur connecté : afficher profil */}
+            {user ? (
               <div className="navbar-user-wrap">
                 <button className="navbar-avatar-btn" onClick={() => setUserMenuOpen(o => !o)}>
                   {user.url_avatar
@@ -109,9 +109,14 @@ export default function Navbar() {
                     <div className="user-dropdown-header">
                       <strong>{user.nom_affiche}</strong>
                       <span>{user.email}</span>
+                      {user.est_admin && <span className="text-[10px] font-bold text-[var(--accent-color)] uppercase tracking-wider block mt-0.5">Admin</span>}
                     </div>
                     <Link to="/profil" className="user-dropdown-item" onClick={() => setUserMenuOpen(false)}>Mon Profil</Link>
-                    <Link to="/mes-reservations" className="user-dropdown-item" onClick={() => setUserMenuOpen(false)}>Mes Réservations</Link>
+                    {user.est_admin ? (
+                      <Link to="/admin" className="user-dropdown-item font-semibold text-[var(--accent-color)]" onClick={() => setUserMenuOpen(false)}>Tableau de bord</Link>
+                    ) : (
+                      <Link to="/mes-reservations" className="user-dropdown-item" onClick={() => setUserMenuOpen(false)}>Mes Réservations</Link>
+                    )}
                     <button className="user-dropdown-item logout" onClick={() => { logout(); setUserMenuOpen(false); }}>
                       Déconnexion
                     </button>
@@ -119,7 +124,7 @@ export default function Navbar() {
                 )}
               </div>
             ) : (
-              /* Admin connecté ou non connecté : bouton Connexion */
+              /* Non connecté : bouton Connexion */
               <div className="navbar-auth-btns">
                 <Link to="/login" className="navbar-login-btn">Connexion</Link>
               </div>
@@ -142,6 +147,14 @@ export default function Navbar() {
                 {link.label}
               </NavLink>
             ))}
+            {user && (
+              <>
+                <Link to="/profil" className="navbar-mobile-link" onClick={() => setMobileOpen(false)}>Mon Profil</Link>
+                {user.est_admin && (
+                  <Link to="/admin" className="navbar-mobile-link font-semibold text-[var(--accent-color)]" onClick={() => setMobileOpen(false)}>Tableau de bord</Link>
+                )}
+              </>
+            )}
             {!user && (
               <Link to="/login" className="navbar-mobile-link" onClick={() => setMobileOpen(false)}>Connexion</Link>
             )}

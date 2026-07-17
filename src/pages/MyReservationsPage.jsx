@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { reservationsApi } from '../lib/api';
-import { Bed, FileText, AlertTriangle } from 'lucide-react';
+import { reservationsApi, platsApi, commandesApi } from '../lib/api';
+import { Bed, FileText, AlertTriangle, Utensils, Plus, Minus, ShoppingBag } from 'lucide-react';
 
 const STATUT_CONFIG = {
   en_attente:  { label: 'En attente',  color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
@@ -15,6 +15,207 @@ const STATUT_CONFIG = {
 function StatutBadge({ statut }) {
   const cfg = STATUT_CONFIG[statut] || STATUT_CONFIG.en_attente;
   return <span className="statut-badge" style={{ color: cfg.color, background: cfg.bg }}>{cfg.label}</span>;
+}
+
+function ServiceRepas({ reservation }) {
+  const [plats, setPlats] = useState([]);
+  const [commandes, setCommandes] = useState([]);
+  const [panier, setPanier] = useState({}); // { platId: quantite }
+  const [ouvert, setOuvert] = useState(false);
+  const [notes, setNotes] = useState('');
+  const [message, setMessage] = useState(null);
+
+  useEffect(() => {
+    if (ouvert) {
+      platsApi.menu()
+        .then(data => {
+          const flatPlats = Object.values(data).flat();
+          setPlats(flatPlats);
+        })
+        .catch(console.error);
+    }
+  }, [ouvert]);
+
+  const chargerCommandes = useCallback(() => {
+    commandesApi.mesCommandes(reservation.id)
+      .then(setCommandes)
+      .catch(console.error);
+  }, [reservation.id]);
+
+  useEffect(() => {
+    chargerCommandes();
+    const interval = setInterval(chargerCommandes, 8000); // 8s refresh
+    return () => clearInterval(interval);
+  }, [chargerCommandes]);
+
+  const modifierPanier = (platId, delta) => {
+    setPanier(prev => {
+      const q = (prev[platId] || 0) + delta;
+      if (q <= 0) {
+        const { [platId]: _, ...rest } = prev;
+        return rest;
+      }
+      return { ...prev, [platId]: q };
+    });
+  };
+
+  const validerCommande = async () => {
+    const articles = Object.entries(panier).map(([id, q]) => {
+      const p = plats.find(item => item.id === id);
+      return {
+        type_article: 'plat',
+        plat_id: id,
+        nom_article: p?.nom || 'Plat',
+        quantite: q,
+        prix_unitaire: p?.prix || 0,
+      };
+    });
+
+    if (articles.length === 0) return;
+
+    try {
+      await commandesApi.creer({
+        reservation_id: reservation.id,
+        chambre_id: reservation.lignes_reservation?.[0]?.chambre_id,
+        type_commande: 'chambre',
+        articles,
+        notes,
+      });
+      setMessage({ type: 'success', text: 'Commande envoyée avec succès !' });
+      setPanier({});
+      setNotes('');
+      chargerCommandes();
+      setTimeout(() => setMessage(null), 4000);
+    } catch (e) {
+      setMessage({ type: 'error', text: e.message });
+      setTimeout(() => setMessage(null), 4000);
+    }
+  };
+
+  const totalPanier = Object.entries(panier).reduce((sum, [id, q]) => {
+    const p = plats.find(item => item.id === id);
+    return sum + (p ? p.prix * q : 0);
+  }, 0);
+
+  const getStatutLabel = (st) => {
+    switch (st) {
+      case 'en_attente': return 'En attente';
+      case 'en_preparation': return 'En préparation';
+      case 'prete': return '🍽️ Prêt / Disponible !';
+      case 'terminee': return 'Livré';
+      case 'annulee': return 'Annulé';
+      default: return st;
+    }
+  };
+
+  return (
+    <div className="room-service-box">
+      <button 
+        type="button" 
+        className="room-service-toggle-btn"
+        onClick={() => setOuvert(!ouvert)}
+      >
+        <Utensils size={16} />
+        <span>{ouvert ? 'Fermer le Room Service' : 'Commander un Repas (Room Service)'}</span>
+      </button>
+
+      {ouvert && (
+        <div className="room-service-panel">
+          <h4 className="rs-section-title"><ShoppingBag size={15} /> Notre Menu Restaurant</h4>
+          {plats.length === 0 ? (
+            <p style={{ fontSize: '13px', opacity: 0.6 }}>Chargement du menu...</p>
+          ) : (
+            <div className="rs-menu-grid">
+              {plats.map(p => {
+                const qty = panier[p.id] || 0;
+                return (
+                  <div key={p.id} className="rs-menu-card">
+                    <div>
+                      <div className="rs-menu-card-title">{p.nom}</div>
+                      {p.description && <div className="rs-menu-card-desc">{p.description}</div>}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+                      <span className="rs-menu-card-price">${p.prix}</span>
+                      <div className="rs-qty-ctrl">
+                        {qty > 0 && (
+                          <button type="button" className="rs-qty-btn" onClick={() => modifierPanier(p.id, -1)}><Minus size={12} /></button>
+                        )}
+                        {qty > 0 && <span className="rs-qty-val">{qty}</span>}
+                        <button type="button" className="rs-qty-btn" onClick={() => modifierPanier(p.id, 1)}><Plus size={12} /></button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {totalPanier > 0 && (
+            <div style={{ padding: '12px', background: 'var(--surface-hover)', borderRadius: '10px', marginTop: '12px', border: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '14px', marginBottom: '8px' }}>
+                <span>Total Panier :</span>
+                <span style={{ color: 'var(--accent-color)' }}>${totalPanier}</span>
+              </div>
+              <input 
+                type="text" 
+                placeholder="Instructions spéciales (ex: sans sel, livré à 20h...)" 
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                style={{ width: '100%', padding: '8px 10px', background: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-main)', fontSize: '12px', outline: 'none', marginBottom: '8px' }}
+              />
+              <button 
+                type="button" 
+                className="cw-btn cw-btn-primary" 
+                style={{ width: '100%', padding: '8px', fontSize: '13px' }}
+                onClick={validerCommande}
+              >
+                Confirmer la Commande
+              </button>
+            </div>
+          )}
+
+          {message && (
+            <div style={{ 
+              marginTop: '10px', 
+              padding: '8px 12px', 
+              borderRadius: '8px', 
+              fontSize: '13px', 
+              textAlign: 'center',
+              background: message.type === 'success' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+              color: message.type === 'success' ? '#10b981' : '#ef4444',
+              border: `1px solid ${message.type === 'success' ? '#10b981' : '#ef4444'}`
+            }}>
+              {message.text}
+            </div>
+          )}
+
+          {commandes.length > 0 && (
+            <div style={{ marginTop: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+              <h5 style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '8px', color: 'var(--text-main)' }}>Suivi de mes Commandes Repas</h5>
+              <div className="rs-orders-list">
+                {commandes.map(cmd => (
+                  <div key={cmd.id} className="rs-order-row">
+                    <div>
+                      <div style={{ fontWeight: 600 }}>Commande #{cmd.id.slice(0, 6).toUpperCase()}</div>
+                      <div style={{ fontSize: '11px', opacity: 0.65 }}>
+                        {cmd.lignes_commande?.map(l => `${l.quantite}x ${l.nom_article}`).join(', ')}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontWeight: 700, color: 'var(--accent-color)' }}>${cmd.montant_total}</span>
+                      <span className={`rs-order-badge rs-badge-${cmd.statut}`}>
+                        {getStatutLabel(cmd.statut)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function MyReservationsPage() {
@@ -85,9 +286,12 @@ export default function MyReservationsPage() {
                     </div>
                   </div>
                   {res.demandes_speciales && (
-                    <div style={{ fontSize: '13px', opacity: 0.65, padding: '8px 0 0', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                    <div style={{ fontSize: '13px', opacity: 0.65, padding: '8px 0 0', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'flex-start', gap: '6px', marginBottom: '8px' }}>
                       <FileText size={13} style={{ marginTop: '2px', flexShrink: 0 }} /> {res.demandes_speciales}
                     </div>
+                  )}
+                  {res.statut === 'en_sejour' && (
+                    <ServiceRepas reservation={res} />
                   )}
                 </div>
               );

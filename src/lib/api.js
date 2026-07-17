@@ -116,6 +116,10 @@ export const commandesApi = {
   liste: (statut = null) =>
     apiFetch(`/api/admin/commandes${statut ? `?statut=${statut}` : ''}`),
 
+  /** Mes commandes (utilisateur connecté) */
+  mesCommandes: (reservationId = null) =>
+    apiFetch(`/api/commandes${reservationId ? `?reservation_id=${reservationId}` : ''}`),
+
   /** Créer une commande */
   creer: (data) =>
     apiFetch('/api/commandes', { method: 'POST', body: JSON.stringify(data) }),
@@ -139,6 +143,17 @@ export const statsApi = {
 
 export const utilisateursApi = {
   liste: () => apiFetch('/api/admin/utilisateurs'),
+};
+
+// ============================================================
+//  PROFIL UTILISATEUR
+// ============================================================
+
+export const profilApi = {
+  /** Récupérer le profil du client connecté */
+  get: () => apiFetch('/api/profil'),
+  /** Créer ou mettre à jour le profil */
+  sauvegarder: (data) => apiFetch('/api/profil', { method: 'POST', body: JSON.stringify(data) }),
 };
 
 // ============================================================

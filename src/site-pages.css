@@ -343,3 +343,142 @@
 .res-detail-arrow { color:var(--text-muted); font-size:1.25rem; }
 .res-detail-sep { width:1px; height:40px; background:var(--border-color); }
 .res-card-actions { margin-top:1rem; padding-top:1rem; border-top:1px solid var(--border-color); }
+
+/* ── SERVICE REPAS EN CHAMBRE (MyReservationsPage) ── */
+.room-service-box {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px dashed var(--border-color);
+}
+.room-service-toggle-btn {
+  background: var(--surface-hover);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  border-radius: 12px;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s;
+}
+.room-service-toggle-btn:hover {
+  background: var(--border-color);
+  border-color: var(--accent-color);
+}
+.room-service-panel {
+  margin-top: 1rem;
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 1.25rem;
+  animation: slideDown 0.3s ease;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.rs-section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent-color);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.rs-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.rs-menu-card {
+  background: var(--surface-app);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.rs-menu-card-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.rs-menu-card-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+.rs-menu-card-price {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--accent-color);
+}
+.rs-qty-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.rs-qty-btn {
+  background: var(--surface-hover);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+.rs-qty-btn:hover {
+  background: var(--accent-color);
+  color: var(--text-on-accent);
+  border-color: var(--accent-color);
+}
+.rs-qty-val {
+  font-size: 0.85rem;
+  font-weight: 700;
+  min-width: 14px;
+  text-align: center;
+}
+.rs-orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+.rs-order-row {
+  background: var(--surface-app);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+}
+.rs-order-badge {
+  padding: 0.25rem 0.6rem;
+  border-radius: 99px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.rs-badge-en_attente { background: rgba(245,158,11,0.15); color: #f59e0b; }
+.rs-badge-en_preparation { background: rgba(59,130,246,0.15); color: #3b82f6; }
+.rs-badge-prete { background: rgba(16,185,129,0.2); color: #10b981; border: 1px solid #10b981; animation: pulseGlow 2s infinite; }
+.rs-badge-livree { background: rgba(107,114,128,0.15); color: #6b7280; }
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+

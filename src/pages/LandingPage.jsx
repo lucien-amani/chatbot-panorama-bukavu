@@ -1,23 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  Utensils, 
-  Van, 
-  Shirt, 
-  Waves, 
-  Wifi, 
-  Lock, 
-  Users, 
-  Sunrise, 
-  Ship, 
-  Fish, 
-  Leaf, 
-  Mountain, 
-  Sun, 
-  MessageSquare, 
-  Star 
+import {
+  Utensils, Van, Shirt, Waves, Wifi, Lock, Users,
+  Sunrise, Ship, Fish, Leaf, Mountain, Sun, MessageSquare, Star
 } from 'lucide-react';
+import DateRangePicker from '../components/DateRangePicker';
 
 const ROOMS = [
   {
@@ -113,16 +101,16 @@ export default function LandingPage() {
         <div className="hero-search-card">
           <div className="search-card-title">Vérifier les disponibilités</div>
           <form className="search-form" onSubmit={handleSearch}>
-            <div className="search-field">
-              <label>Arrivée</label>
-              <input type="date" value={checkin} onChange={e => setCheckin(e.target.value)}
-                min={new Date().toISOString().split('T')[0]} required />
-            </div>
-            <div className="search-divider" />
-            <div className="search-field">
-              <label>Départ</label>
-              <input type="date" value={checkout} onChange={e => setCheckout(e.target.value)}
-                min={checkin || new Date().toISOString().split('T')[0]} required />
+            <div className="search-field" style={{ flex: 2, minWidth: 0 }}>
+              <label>Arrivée → Départ</label>
+              <DateRangePicker
+                startDate={checkin}
+                endDate={checkout}
+                onStartChange={setCheckin}
+                onEndChange={setCheckout}
+                minDate={new Date().toISOString().split('T')[0]}
+                compact
+              />
             </div>
             <div className="search-divider" />
             <div className="search-field">

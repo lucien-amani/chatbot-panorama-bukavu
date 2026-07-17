@@ -2,16 +2,20 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { PrismaClient } = require('@prisma/client');
 require('dotenv').config();
 
+
+
+
+const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ── Middlewares ───────────────────────────────────────────
 app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:4173'], credentials: true }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // ── Middleware auth JWT ───────────────────────────────────
 function authMiddleware(req, res, next) {
@@ -90,6 +94,36 @@ app.post('/api/auth/login', async (req, res) => {
     );
     const { password_hash: _, ...userData } = user;
     res.json({ token, user: userData });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.put('/api/auth/profile', authMiddleware, async (req, res) => {
+  const { nom_affiche, email, url_avatar, password } = req.body;
+  try {
+    const data = {};
+    if (nom_affiche !== undefined) data.nom_affiche = nom_affiche;
+    if (email !== undefined) {
+      const existing = await prisma.utilisateur.findUnique({ where: { email } });
+      if (existing && existing.id !== req.user.id) {
+        return res.status(400).json({ error: 'Cet email est déjà utilisé.' });
+      }
+      data.email = email;
+    }
+    if (url_avatar !== undefined) data.url_avatar = url_avatar;
+    if (password) {
+      const salt = bcrypt.genSaltSync(10);
+      data.password_hash = bcrypt.hashSync(password, salt);
+    }
+
+    const updatedUser = await prisma.utilisateur.update({
+      where: { id: req.user.id },
+      data,
+    });
+
+    const { password_hash: _, ...userData } = updatedUser;
+    res.json({ user: userData });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -366,7 +400,34 @@ app.get('/api/mes-reservations', authMiddleware, async (req, res) => {
   }
 });
 
+// ============================================================
+//  PROFIL UTILISATEUR
+// ============================================================
+
+app.get('/api/profil', authMiddleware, async (req, res) => {
+  try {
+    const profil = await prisma.profil.findUnique({ where: { utilisateur_id: req.user.id } });
+    res.json(profil || null);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/profil', authMiddleware, async (req, res) => {
+  const { telephone, type_document_identite, numero_document_identite, nationalite, pays_residence } = req.body;
+  try {
+    const profil = await prisma.profil.upsert({
+      where: { utilisateur_id: req.user.id },
+      update: { telephone, type_document_identite, numero_document_identite, nationalite, pays_residence },
+      create: { utilisateur_id: req.user.id, telephone, type_document_identite, numero_document_identite, nationalite, pays_residence },
+    });
+    res.json(profil);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.post('/api/reservations', authMiddleware, async (req, res) => {
+  // Les administrateurs ne peuvent pas effectuer de réservations
+  if (req.user.est_admin) {
+    return res.status(403).json({ error: 'Les administrateurs ne peuvent pas effectuer de réservations.' });
+  }
   const { chambre_id, date_arrivee, date_depart, nombre_voyageurs, demandes_speciales, lit_supplementaire } = req.body;
   try {
     const chambre = await prisma.chambre.findUnique({
@@ -419,7 +480,8 @@ app.post('/api/reservations', authMiddleware, async (req, res) => {
 
 app.patch('/api/admin/reservations/:id/statut', adminMiddleware, async (req, res) => {
   const { statut } = req.body;
-  const statutsValides = ['confirmee', 'payee', 'en_sejour', 'terminee', 'annulee'];
+  // payee supprimé — workflow: en_attente → confirmee → en_sejour → terminee | annulee
+  const statutsValides = ['en_attente', 'confirmee', 'en_sejour', 'terminee', 'annulee'];
   if (!statutsValides.includes(statut)) return res.status(400).json({ error: 'Statut invalide.' });
 
   try {
@@ -427,26 +489,31 @@ app.patch('/api/admin/reservations/:id/statut', adminMiddleware, async (req, res
       where: { id: req.params.id },
       data: { statut },
     });
-
-    // Mettre à jour le statut des chambres liées
     const lignes = await prisma.ligneReservation.findMany({ where: { reservation_id: req.params.id } });
 
-    if (statut === 'en_sejour') {
-      for (const l of lignes) await prisma.chambre.update({ where: { id: l.chambre_id }, data: { statut: 'occupee' } });
+    if (statut === 'confirmee' || statut === 'en_sejour') {
+      for (const l of lignes) {
+        await prisma.chambre.update({ where: { id: l.chambre_id }, data: { statut: 'occupee' } });
+      }
     }
     if (statut === 'terminee') {
+      // Chambre → maintenance. Seul l'admin peut la remettre disponible.
       for (const l of lignes) {
-        await prisma.chambre.update({ where: { id: l.chambre_id }, data: { statut: 'nettoyage' } });
+        await prisma.chambre.update({ where: { id: l.chambre_id }, data: { statut: 'maintenance' } });
         await prisma.notification.create({
           data: {
             reservation_id: req.params.id,
             type: 'nettoyage_chambre',
-            message: `Chambre à nettoyer après départ — Réservation ${req.params.id.slice(0, 8)}`,
+            message: `Chambre en maintenance après départ — Réservation ${req.params.id.slice(0, 8)}`,
           },
         });
       }
     }
-
+    if (statut === 'annulee') {
+      for (const l of lignes) {
+        await prisma.chambre.update({ where: { id: l.chambre_id }, data: { statut: 'disponible' } });
+      }
+    }
     res.json(reservation);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -566,6 +633,26 @@ app.post('/api/commandes', authMiddleware, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
+app.get('/api/commandes', authMiddleware, async (req, res) => {
+  try {
+    const { reservation_id } = req.query;
+    const where = { utilisateur_id: req.user.id };
+    if (reservation_id) where.reservation_id = reservation_id;
+    
+    const commandes = await prisma.commande.findMany({
+      where,
+      include: {
+        lignes_commande: { include: { plat: true } },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+    res.json(commandes);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 
 app.patch('/api/admin/commandes/:id/statut', adminMiddleware, async (req, res) => {
   const { statut } = req.body;
@@ -690,15 +777,60 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
+// ── Auto-scheduler : arrivées → en_sejour / départs → maintenance ────────
+async function autoUpdateReservations() {
+  try {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today.getTime() + 86400000);
+
+    // Réservations confirmées dont la date d'arrivée est aujourd'hui → en_sejour
+    const arrivals = await prisma.reservation.findMany({
+      where: { statut: { in: ['confirmee', 'en_attente'] }, date_arrivee: { gte: today, lt: tomorrow } },
+      include: { lignes_reservation: true },
+    });
+    for (const r of arrivals) {
+      await prisma.reservation.update({ where: { id: r.id }, data: { statut: 'en_sejour' } });
+      for (const l of r.lignes_reservation) {
+        await prisma.chambre.update({ where: { id: l.chambre_id }, data: { statut: 'occupee' } });
+      }
+    }
+
+    // Réservations en_sejour dont la date de départ est dépassée → terminee + maintenance
+    const departures = await prisma.reservation.findMany({
+      where: { statut: 'en_sejour', date_depart: { lt: tomorrow } },
+      include: { lignes_reservation: true },
+    });
+    for (const r of departures) {
+      await prisma.reservation.update({ where: { id: r.id }, data: { statut: 'terminee' } });
+      for (const l of r.lignes_reservation) {
+        await prisma.chambre.update({ where: { id: l.chambre_id }, data: { statut: 'maintenance' } });
+        await prisma.notification.create({
+          data: {
+            reservation_id: r.id, type: 'nettoyage_chambre',
+            message: `Chambre en maintenance après départ (auto) — Réservation ${r.id.slice(0, 8)}`,
+          },
+        });
+      }
+    }
+    if (arrivals.length + departures.length > 0) {
+      console.log(`[Scheduler] ${arrivals.length} arrivée(s), ${departures.length} départ(s) traités.`);
+    }
+  } catch (err) {
+    console.error('[Scheduler] Erreur:', err.message);
+  }
+}
+
 // ── Démarrage ─────────────────────────────────────────────
 app.listen(PORT, () => {
-  console.log(`\n╔═══════════════════════════════════════════╗`);
-  console.log(`║  🏨  Panorama Assist Backend v2.0         ║`);
-  console.log(`╠═══════════════════════════════════════════╣`);
-  console.log(`║  🚀  Port         : ${PORT}                   ║`);
-  console.log(`║  🐘  Base données : PostgreSQL             ║`);
-  console.log(`║  🌐  URL          : http://localhost:${PORT}  ║`);
-  console.log(`╚═══════════════════════════════════════════╝\n`);
+  console.log(`\n  \x1b[1;33m🔥  Hôtel PANORAMA  🔥\x1b[0m`);
+  console.log(`  \x1b[1;32m✔  Assistant de l'hôtel démarré et authentifié avec succès.\x1b[0m\n`);
+  console.log(`  \x1b[1;33m•\x1b[0m  \x1b[1;32mPort\x1b[0m           : \x1b[1;36m${PORT}\x1b[0m`);
+  console.log(`  \x1b[1;33m•\x1b[0m  \x1b[1;32mBase de données\x1b[0m: \x1b[1;36mPostgreSQL\x1b[0m`);
+  console.log(`  \x1b[1;33m•\x1b[0m  \x1b[1;32mURL locale\x1b[0m     : \x1b[1;36mhttp://localhost:${PORT}\x1b[0m\n`);
+  // Lancer le scheduler immédiatement puis toutes les 5 minutes
+  autoUpdateReservations();
+  setInterval(autoUpdateReservations, 5 * 60 * 1000);
 });
 
 module.exports = app;

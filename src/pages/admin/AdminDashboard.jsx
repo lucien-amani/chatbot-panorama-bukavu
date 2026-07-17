@@ -172,6 +172,7 @@ function VueReservations() {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(null);
+  const [openPickerId, setOpenPickerId] = useState(null);
 
   const charger = useCallback(async () => {
     try {
@@ -211,36 +212,74 @@ function VueReservations() {
                 <th>Chambre</th>
                 <th>Arrivée</th>
                 <th>Départ</th>
+                <th>Durée</th>
                 <th>Total</th>
                 <th>Statut</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {loading && reservations.length===0 ? <tr><td colSpan="7">Chargement...</td></tr> : 
-                reservations.length === 0 ? <tr><td colSpan="7" style={{ textAlign: 'center', opacity: 0.5 }}>Aucune réservation trouvée</td></tr> :
+              {loading && reservations.length===0 ? <tr><td colSpan="8">Chargement...</td></tr> : 
+                reservations.length === 0 ? <tr><td colSpan="8" style={{ textAlign: 'center', opacity: 0.5 }}>Aucune réservation trouvée</td></tr> :
                 reservations.map(r => (
                   <tr key={r.id}>
                     <td style={{ fontWeight: 600 }}>{r.utilisateur?.nom_affiche || r.utilisateur?.email || 'Inconnu'}</td>
                     <td style={{ color: 'var(--text-muted)' }}>{r.lignes_reservation?.[0]?.chambre?.numero_chambre || '—'} ({r.lignes_reservation?.[0]?.chambre?.type_chambre?.nom || '—'})</td>
                     <td>{new Date(r.date_arrivee).toLocaleDateString('fr-FR')}</td>
                     <td>{new Date(r.date_depart).toLocaleDateString('fr-FR')}</td>
+                    <td style={{ fontWeight: 600, color: 'var(--text-muted)' }}>
+                      {(() => {
+                        const d1 = new Date(r.date_arrivee);
+                        const d2 = new Date(r.date_depart);
+                        const diff = Math.ceil(Math.abs(d2 - d1) / (1000 * 60 * 60 * 24));
+                        return diff === 1 ? '1 jour' : `${diff} jours`;
+                      })()}
+                    </td>
                     <td style={{ fontWeight: 800, color: 'var(--text-main)' }}>{fmt(r.montant_total)}</td>
                     <td><StatutBadge statut={r.statut} /></td>
                     <td>
-                      <select 
-                        value={r.statut} 
-                        onChange={(e) => changerStatut(r.id, e.target.value)}
-                        disabled={updating === r.id}
-                        className="admin-select-statut"
-                      >
-                        <option value="en_attente">En attente</option>
-                        <option value="confirmee">Confirmée</option>
-                        <option value="payee">Payée</option>
-                        <option value="en_sejour">En séjour</option>
-                        <option value="terminee">Terminée</option>
-                        <option value="annulee">Annulée</option>
-                      </select>
+                      <div className="modern-status-picker-wrap">
+                        <button
+                          type="button"
+                          className="modern-status-picker-trigger"
+                          onClick={() => setOpenPickerId(openPickerId === r.id ? null : r.id)}
+                          disabled={updating === r.id}
+                        >
+                          <span>Changer</span>
+                          <span className="picker-arrow">▼</span>
+                        </button>
+                        
+                        {openPickerId === r.id && (
+                          <>
+                            <div className="modern-status-picker-backdrop" onClick={() => setOpenPickerId(null)} />
+                            <div className="modern-status-picker-dropdown">
+                              {['en_attente', 'confirmee', 'en_sejour', 'terminee', 'annulee'].map(st => {
+                                const cfg = STATUT_CONFIG[st] || { label: st, color: '#666', bg: '#eee' };
+                                const isActive = r.statut === st;
+                                return (
+                                  <button
+                                    key={st}
+                                    type="button"
+                                    onClick={() => {
+                                      changerStatut(r.id, st);
+                                      setOpenPickerId(null);
+                                    }}
+                                    className={`modern-status-option ${isActive ? 'active' : ''}`}
+                                    style={{
+                                      '--status-color': cfg.color,
+                                      '--status-bg': cfg.bg,
+                                    }}
+                                  >
+                                    <span className="status-dot" style={{ backgroundColor: cfg.color }} />
+                                    <span className="status-label">{cfg.label}</span>
+                                    {isActive && <span className="active-check">✓</span>}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+                      </div>
                       {updating === r.id && <span style={{ marginLeft: '8px', fontSize: '12px' }}>⏳</span>}
                     </td>
                   </tr>
@@ -261,6 +300,10 @@ function VueChambres() {
   const [updating, setUpdating] = useState(null);
   const [chambreModale, setChambreModale] = useState(null); // null = fermée, {} = nouvelle, ou objet chambre
   const [typesChambres, setTypesChambres] = useState([]);
+  
+  // Custom states
+  const [imageSourceType, setImageSourceType] = useState('url');
+  const [openRoomPickerId, setOpenRoomPickerId] = useState(null);
 
   // Form states
   const [numChambre, setNumChambre] = useState('');
@@ -297,6 +340,7 @@ function VueChambres() {
       setSelectedStatut(chambreModale.statut || 'disponible');
       setNotesChambre(chambreModale.notes || '');
       setImgUrl(chambreModale.image_url || '');
+      setImageSourceType(chambreModale.image_url && chambreModale.image_url.startsWith('data:') ? 'file' : 'url');
     }
   }, [chambreModale]);
 
@@ -318,7 +362,7 @@ function VueChambres() {
     const data = {
       numero_chambre: numChambre,
       type_chambre_id: selectedType,
-      etage: Number(etageChambre) || 1,
+      etage: etageChambre === '' ? null : Number(etageChambre),
       statut: selectedStatut,
       notes: notesChambre,
       image_url: imgUrl
@@ -350,7 +394,7 @@ function VueChambres() {
 
   return (
     <div className="admin-view">
-      <div className="admin-view-header" style={{ marginBottom: '24px', display: 'flex', justifycontent: 'space-between', alignItems: 'center' }}>
+      <div className="admin-view-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)' }}>Gestion des Chambres</h1>
           <span className="admin-count">{chambres.length} chambres au total</span>
@@ -395,24 +439,55 @@ function VueChambres() {
                       )}
                       {ch.notes && <div className="arc-notes"><FileText size={12} style={{ display: 'inline', marginRight: '4px' }} />{ch.notes}</div>}
                     </div>
-                    <div className="arc-actions">
+                    <div className="arc-actions" style={{ marginTop: '8px' }}>
                       {isOccupiedByReservation ? (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '8px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'center' }}>
                           Statut géré par la réservation
                         </div>
                       ) : (
-                        <select 
-                          value={ch.statut} 
-                          onChange={(e) => changerStatut(ch.id, e.target.value)}
-                          disabled={updating === ch.id}
-                          className="admin-select-statut"
-                          style={{ width: '100%', marginTop: '8px' }}
-                        >
-                          <option value="disponible">Disponible</option>
-                          <option value="occupee">Occupée</option>
-                          <option value="nettoyage">En nettoyage</option>
-                          <option value="maintenance">En maintenance</option>
-                        </select>
+                        <div className="modern-status-picker-wrap" style={{ width: '100%' }}>
+                          <button
+                            type="button"
+                            className="modern-status-picker-trigger"
+                            onClick={() => setOpenRoomPickerId(openRoomPickerId === ch.id ? null : ch.id)}
+                            disabled={updating === ch.id}
+                            style={{ width: '100%', justifyContent: 'space-between' }}
+                          >
+                            <span>Modifier le statut</span>
+                            <span className="picker-arrow">▼</span>
+                          </button>
+                          
+                          {openRoomPickerId === ch.id && (
+                            <>
+                              <div className="modern-status-picker-backdrop" onClick={() => setOpenRoomPickerId(null)} />
+                              <div className="modern-status-picker-dropdown" style={{ width: '100%', bottom: '100%', top: 'auto', marginBottom: '6px' }}>
+                                {['disponible', 'occupee', 'nettoyage', 'maintenance'].map(st => {
+                                  const cfg = STATUT_CONFIG[st] || { label: st, color: '#666', bg: '#eee' };
+                                  const isActive = ch.statut === st;
+                                  return (
+                                    <button
+                                      key={st}
+                                      type="button"
+                                      onClick={() => {
+                                        changerStatut(ch.id, st);
+                                        setOpenRoomPickerId(null);
+                                      }}
+                                      className={`modern-status-option ${isActive ? 'active' : ''}`}
+                                      style={{
+                                        '--status-color': cfg.color,
+                                        '--status-bg': cfg.bg,
+                                      }}
+                                    >
+                                      <span className="status-dot" style={{ backgroundColor: cfg.color }} />
+                                      <span className="status-label">{cfg.label}</span>
+                                      {isActive && <span className="active-check">✓</span>}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </>
+                          )}
+                        </div>
                       )}
                     </div>
                     {updating === ch.id && <div className="arc-loader">Mise à jour...</div>}
@@ -424,29 +499,29 @@ function VueChambres() {
         ))
       }
 
-      {/* MODALE AJOUT/MODIFICATION CHAMBRE */}
+      {/* FORMULAIRE ERGONOMIQUE PLEINE PAGE */}
       {chambreModale !== null && (
-        <div className="admin-modal-overlay" onClick={() => setChambreModale(null)}>
-          <div className="admin-modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+        <div className="admin-modal-overlay full-page-form" onClick={() => setChambreModale(null)}>
+          <div className="admin-modal-content full-page-content" onClick={e => e.stopPropagation()}>
             <div className="admin-modal-header">
               <h2>{chambreModale.id ? `Modifier Chambre ${chambreModale.numero_chambre}` : 'Nouvelle Chambre'}</h2>
               <button onClick={() => setChambreModale(null)}><X size={20} /></button>
             </div>
             <form onSubmit={sauvegarderChambre}>
-              <div className="admin-modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="admin-modal-body">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                   <div className="rsb-field">
-                    <label>Numéro de chambre</label>
-                    <input type="text" value={numChambre} onChange={e => setNumChambre(e.target.value)} required />
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px', display: 'block' }}>Numéro de chambre</label>
+                    <input type="text" value={numChambre} onChange={e => setNumChambre(e.target.value)} required style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)', outline: 'none' }} />
                   </div>
                   <div className="rsb-field">
-                    <label>Étage (numéro)</label>
-                    <input type="number" value={etageChambre} onChange={e => setEtageChambre(e.target.value)} />
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px', display: 'block' }}>Étage (numéro)</label>
+                    <input type="number" value={etageChambre} onChange={e => setEtageChambre(e.target.value)} style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)', outline: 'none' }} />
                   </div>
                 </div>
                 
                 <div className="rsb-field">
-                  <label style={{ marginBottom: '8px', display: 'block' }}>Type de Chambre</label>
+                  <label style={{ marginBottom: '8px', display: 'block', fontSize: '0.85rem', fontWeight: 600 }}>Type de Chambre</label>
                   <div className="modern-selection-grid">
                     {typesChambres.map(t => {
                       const isSelected = selectedType === t.id;
@@ -466,7 +541,7 @@ function VueChambres() {
                 </div>
 
                 <div className="rsb-field">
-                  <label style={{ marginBottom: '8px', display: 'block' }}>Statut de la Chambre</label>
+                  <label style={{ marginBottom: '8px', display: 'block', fontSize: '0.85rem', fontWeight: 600 }}>Statut de la Chambre</label>
                   <div className="modern-status-grid">
                     {['disponible', 'occupee', 'nettoyage', 'maintenance'].map(st => {
                       const isSelected = selectedStatut === st;
@@ -491,18 +566,87 @@ function VueChambres() {
                 </div>
 
                 <div className="rsb-field">
-                  <label>URL de l'image (optionnel, affichée publiquement)</label>
-                  <input type="url" value={imgUrl} onChange={e => setImgUrl(e.target.value)} placeholder="https://..." />
+                  <label style={{ marginBottom: '8px', display: 'block', fontSize: '0.85rem', fontWeight: 600 }}>Photo de la Chambre</label>
+                  <div className="modern-image-picker">
+                    <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setImageSourceType('url')}
+                        className={`modern-tab-btn ${imageSourceType === 'url' ? 'active' : ''}`}
+                      >
+                        Lien Web (URL)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setImageSourceType('file')}
+                        className={`modern-tab-btn ${imageSourceType === 'file' ? 'active' : ''}`}
+                      >
+                        Téléverser un fichier
+                      </button>
+                    </div>
+
+                    {imageSourceType === 'url' ? (
+                      <input 
+                        type="url" 
+                        value={imgUrl} 
+                        onChange={e => setImgUrl(e.target.value)} 
+                        placeholder="https://images.unsplash.com/photo-..." 
+                        className="modern-input"
+                      />
+                    ) : (
+                      <div className="modern-upload-zone">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          id="room-image-upload"
+                          style={{ display: 'none' }}
+                          onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                              if (file.size > 2 * 1024 * 1024) {
+                                alert("Le fichier est trop volumineux. Max : 2 Mo");
+                                return;
+                              }
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                setImgUrl(reader.result);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                        <label htmlFor="room-image-upload" className="upload-label">
+                          <Camera size={24} style={{ marginBottom: '8px', color: 'var(--accent-color)' }} />
+                          <span>Cliquez pour choisir une photo</span>
+                          <span style={{ fontSize: '0.7rem', opacity: 0.6, marginTop: '4px' }}>PNG, JPG (Max 2Mo)</span>
+                        </label>
+                      </div>
+                    )}
+
+                    {imgUrl && (
+                      <div className="modern-preview-container">
+                        <img src={imgUrl} alt="Aperçu de la chambre" className="modern-image-preview" />
+                        <button 
+                          type="button" 
+                          onClick={() => setImgUrl('')}
+                          className="remove-preview-btn"
+                          title="Supprimer la photo"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="rsb-field">
-                  <label>Notes (privé, ex: Réparation Clim)</label>
-                  <textarea value={notesChambre} onChange={e => setNotesChambre(e.target.value)} style={{ background: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: '9px', padding: '10px', color: 'var(--text-main)', minHeight: '80px', outline: 'none' }}></textarea>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px', display: 'block' }}>Notes (privé, ex: Réparation Clim)</label>
+                  <textarea value={notesChambre} onChange={e => setNotesChambre(e.target.value)} style={{ width: '100%', background: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: '9px', padding: '10px', color: 'var(--text-main)', minHeight: '80px', outline: 'none' }}></textarea>
                 </div>
               </div>
               <div className="admin-modal-footer">
-                <button type="button" className="room-book-btn" style={{ width: 'auto', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-main)' }} onClick={() => setChambreModale(null)}>Annuler</button>
-                <button type="submit" className="room-book-btn" style={{ width: 'auto', padding: '0.6rem 1.5rem' }}>Sauvegarder</button>
+                <button type="button" className="rsb-btn" style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-main)' }} onClick={() => setChambreModale(null)}>Annuler</button>
+                <button type="submit" className="rsb-btn" style={{ marginLeft: '12px' }}>Sauvegarder</button>
               </div>
             </form>
           </div>
@@ -541,21 +685,48 @@ function VueUtilisateurs() {
         <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>
-              <tr><th>Nom</th><th>Email</th><th>Rôle</th><th>Inscription</th></tr>
+              <tr>
+                <th>Nom</th>
+                <th>Email</th>
+                <th>Rôle</th>
+                <th>Téléphone</th>
+                <th>Nationalité</th>
+                <th>Document</th>
+                <th>Réserv.</th>
+                <th>Inscription</th>
+              </tr>
             </thead>
             <tbody>
-              {loading && utilisateurs.length===0 ? <tr><td colSpan="4">Chargement...</td></tr> : 
+              {loading && utilisateurs.length===0 ? <tr><td colSpan="8">Chargement...</td></tr> : 
                 utilisateurs.map(u => (
                   <tr key={u.id}>
                     <td style={{ fontWeight: 600 }}>{u.nom_affiche}</td>
                     <td style={{ color: 'var(--text-muted)' }}>{u.email}</td>
                     <td>
                       {u.est_admin ? 
-                        <span className="statut-badge" style={{ background: 'rgba(139,92,246,0.1)', color: '#8b5cf6' }}>Administrateur</span> : 
+                        <span className="statut-badge" style={{ background: 'rgba(139,92,246,0.1)', color: '#8b5cf6' }}>Admin</span> : 
                         <span className="statut-badge" style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}>Client</span>
                       }
                     </td>
-                    <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{new Date(u.created_at).toLocaleDateString('fr-FR')}</td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                      {u.profil?.telephone || <span style={{ opacity: 0.35 }}>—</span>}
+                    </td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                      {u.profil?.nationalite || <span style={{ opacity: 0.35 }}>—</span>}
+                    </td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                      {u.profil ? (
+                        <span title={u.profil.numero_document_identite}>
+                          {u.profil.type_document_identite === 'passeport' ? '📳 Passeport' : '🏾 CNI'}
+                        </span>
+                      ) : <span style={{ opacity: 0.35 }}>—</span>}
+                    </td>
+                    <td style={{ fontWeight: 700, color: 'var(--accent-color)' }}>
+                      {u._count?.reservations ?? 0}
+                    </td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                      {new Date(u.created_at).toLocaleDateString('fr-FR')}
+                    </td>
                   </tr>
                 ))
               }
