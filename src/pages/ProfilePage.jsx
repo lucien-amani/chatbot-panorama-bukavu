@@ -282,7 +282,7 @@ export default function ProfilePage() {
             <form className="profile-form-card bg-[var(--surface-app)] border border-[var(--border-color)] rounded-2xl p-6 flex flex-col gap-6" onSubmit={handleIdentitySubmit}>
               <div>
                 <h2 className="text-lg font-bold text-[var(--text-main)] mb-1">Informations d'Identité</h2>
-                <p className="text-sm text-[var(--text-muted)]">Ces informations sont obligatoires pour effectuer des séjours à l'Hôtel Panorama.</p>
+                <p className="text-sm text-[var(--text-muted)]">Ces informations sont obligatoires pour effectuer des séjours dans les Hôtels de Bukavu.</p>
               </div>
 
               {savedIdentity && (

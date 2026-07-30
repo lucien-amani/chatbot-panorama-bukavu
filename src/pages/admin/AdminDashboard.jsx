@@ -61,6 +61,8 @@ function KpiCard({ icon: Icon, label, value, sub, color, loading }) {
 
 /* ── 1. Vue Tableau de Bord ── */
 function VueDashboard() {
+  const { user } = useAuth();
+  const managedHotel = getHotelForAdmin(user?.email);
   const [stats, setStats] = useState(null);
   const [reservations, setReservations] = useState([]);
   const [commandes, setCommandes] = useState([]);
@@ -304,6 +306,8 @@ function VueReservations() {
 
 /* ── 3. Vue Chambres ── */
 function VueChambres() {
+  const { user } = useAuth();
+  const managedHotel = getHotelForAdmin(user?.email);
   const [chambres, setChambres] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(null);
@@ -323,8 +327,8 @@ function VueChambres() {
   const [imgUrl, setImgUrl] = useState('');
 
   const chargerTypes = useCallback(async () => {
-    try { const t = await chambresApi.types(); setTypesChambres(t); } catch(e){}
-  }, []);
+    try { const t = await chambresApi.types(managedHotel?.slug); setTypesChambres(t); } catch(e){}
+  }, [managedHotel]);
 
   const charger = useCallback(async () => {
     try {
@@ -667,6 +671,8 @@ function VueChambres() {
 
 /* ── 4. Vue Utilisateurs ── */
 function VueUtilisateurs() {
+  const { user } = useAuth();
+  const managedHotel = getHotelForAdmin(user?.email);
   const [utilisateurs, setUtilisateurs] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -688,8 +694,8 @@ function VueUtilisateurs() {
     <div className="admin-view">
       <div className="dashboard-widget full">
         <div className="widget-header">
-          <h2>Base de Données Utilisateurs</h2>
-          <span className="admin-count">{utilisateurs.length} inscrits</span>
+          <h2>{managedHotel ? `Clients de l'établissement : ${managedHotel.name}` : "Base de Données Utilisateurs"}</h2>
+          <span className="admin-count">{utilisateurs.length} client(s)</span>
         </div>
         <div className="admin-table-wrap">
           <table className="admin-table">
@@ -902,6 +908,171 @@ function AdminHeader({ user, logout, sidebarOpen, setSidebarOpen }) {
   );
 }
 
+/* ── 6. Vue Gestion Hôtels (Super Admin) ── */
+function VueHotels() {
+  const [hotels, setHotels] = useState(() => {
+    try {
+      const local = localStorage.getItem('bukavu_hotels_list');
+      return local ? JSON.parse(local) : hotelsData.hotels;
+    } catch {
+      return hotelsData.hotels;
+    }
+  });
+
+  const [hotelModal, setHotelModal] = useState(null);
+  const [name, setName] = useState('');
+  const [slug, setSlug] = useState('');
+  const [category, setCategory] = useState('4 Étoiles');
+  const [street, setStreet] = useState('');
+  const [phone, setPhone] = useState('');
+
+  useEffect(() => {
+    if (hotelModal) {
+      setName(hotelModal.name || '');
+      setSlug(hotelModal.slug || '');
+      setCategory(hotelModal.category || '4 Étoiles');
+      setStreet(hotelModal.address?.street || '');
+      setPhone(hotelModal.contact?.phone || '');
+    }
+  }, [hotelModal]);
+
+  const saveHotelsToStorage = (updated) => {
+    setHotels(updated);
+    try {
+      localStorage.setItem('bukavu_hotels_list', JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleSaveHotel = (e) => {
+    e.preventDefault();
+    const newSlug = slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const hotelObj = {
+      ...hotelModal,
+      name,
+      slug: newSlug,
+      category,
+      address: { ...hotelModal?.address, street, city: 'Bukavu' },
+      contact: { ...hotelModal?.contact, phone }
+    };
+
+    let updated;
+    if (hotelModal && hotelModal.slug) {
+      updated = hotels.map(h => h.slug === hotelModal.slug ? hotelObj : h);
+    } else {
+      updated = [...hotels, hotelObj];
+    }
+
+    saveHotelsToStorage(updated);
+    setHotelModal(null);
+  };
+
+  const handleDeleteHotel = (hotelSlug) => {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer cet hôtel ?")) {
+      const updated = hotels.filter(h => h.slug !== hotelSlug);
+      saveHotelsToStorage(updated);
+    }
+  };
+
+  return (
+    <div className="admin-view">
+      <div className="admin-view-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)' }}>Gestion du Réseau d'Hôtels</h1>
+          <span className="admin-count">{hotels.length} établissement(s)</span>
+        </div>
+        <button className="rsb-btn" onClick={() => setHotelModal({})}>
+          + Ajouter un Hôtel
+        </button>
+      </div>
+
+      <div className="dashboard-widget full">
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Nom de l'Hôtel</th>
+                <th>Slug (ID)</th>
+                <th>Catégorie</th>
+                <th>Adresse</th>
+                <th>Téléphone</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {hotels.map(h => (
+                <tr key={h.slug}>
+                  <td style={{ fontWeight: 700 }}>{h.name}</td>
+                  <td style={{ color: 'var(--text-muted)', fontFamily: 'monospace' }}>{h.slug}</td>
+                  <td><span className="statut-badge" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>{h.category}</span></td>
+                  <td>{h.address?.street || 'Bukavu'}</td>
+                  <td>{h.contact?.phone || 'N/A'}</td>
+                  <td style={{ display: 'flex', gap: '8px' }}>
+                    <button 
+                      onClick={() => setHotelModal(h)}
+                      className="rsb-btn"
+                      style={{ padding: '6px 12px', fontSize: '12px' }}
+                    >
+                      Modifier
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteHotel(h.slug)}
+                      className="rsb-btn text-danger"
+                      style={{ padding: '6px 12px', fontSize: '12px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }}
+                    >
+                      Supprimer
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {hotelModal !== null && (
+        <div className="admin-modal-overlay" onClick={() => setHotelModal(null)}>
+          <div className="admin-modal-content" onClick={e => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <h2>{hotelModal.slug ? `Modifier ${hotelModal.name}` : 'Ajouter un Hôtel'}</h2>
+              <button onClick={() => setHotelModal(null)}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleSaveHotel}>
+              <div className="admin-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>Nom de l'hôtel</label>
+                  <input type="text" value={name} onChange={e => setName(e.target.value)} required style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>Slug / Identifiant (ex: hotel-panorama)</label>
+                  <input type="text" value={slug} onChange={e => setSlug(e.target.value)} placeholder="Généré automatiquement si vide" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>Catégorie</label>
+                  <input type="text" value={category} onChange={e => setCategory(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>Adresse / Rue</label>
+                  <input type="text" value={street} onChange={e => setStreet(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px' }}>Téléphone Contact</label>
+                  <input type="text" value={phone} onChange={e => setPhone(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }} />
+                </div>
+              </div>
+              <div className="admin-modal-footer">
+                <button type="button" className="btn-ghost" onClick={() => setHotelModal(null)}>Annuler</button>
+                <button type="submit" className="btn-primary">Enregistrer</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── SIDEBAR PROFESSIONNEL ── */
 const SIDEBAR_ITEMS = [
   { to: '/admin', label: 'Tableau de Bord', icon: LayoutDashboard, end: true },
@@ -909,6 +1080,7 @@ const SIDEBAR_ITEMS = [
   { to: '/admin/chambres', label: 'Chambres', icon: Bed },
   { to: '/admin/commandes', label: 'Commandes', icon: Utensils },
   { to: '/admin/utilisateurs', label: 'Utilisateurs', icon: Users },
+  { to: '/admin/hotels', label: 'Gestion Hôtels', icon: Hotel },
 ];
 
 export default function AdminDashboard() {
@@ -962,12 +1134,12 @@ export default function AdminDashboard() {
 
       <aside className={`admin-sidebar ${sidebarOpen ? '' : 'collapsed'}`}>
         <div className="admin-sidebar-brand">
-          <img src="/panorama.png" alt="Panorama" className="admin-brand-img" />
+          <img src="/panorama.png" alt="Bukavu Hotels" className="admin-brand-img" />
           {sidebarOpen && (() => {
             const managedHotel = getHotelForAdmin(user?.email);
             return (
               <div>
-                <div className="admin-brand-name">{managedHotel ? managedHotel.name : 'Panorama'}</div>
+                <div className="admin-brand-name">{managedHotel ? managedHotel.name : 'Bukavu Hotels'}</div>
                 <div className="admin-brand-role">{managedHotel ? '🏨 Admin Hôtel' : '⭐ Super Admin'}</div>
               </div>
             );
@@ -1017,9 +1189,9 @@ export default function AdminDashboard() {
             <Route index element={<VueDashboard />} />
             <Route path="utilisateurs" element={<VueUtilisateurs />} />
             <Route path="reservations" element={<VueReservations />} />
-            {/* Vues existantes reconstruites très rapidement : */}
             <Route path="chambres" element={<VueChambres />} />
             <Route path="commandes" element={<VueCommandes />} />
+            <Route path="hotels" element={<VueHotels />} />
           </Routes>
         </div>
       </div>

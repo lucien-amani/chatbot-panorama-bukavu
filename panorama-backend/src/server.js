@@ -343,7 +343,24 @@ app.get('/api/chambres/disponibles', async (req, res) => {
 // Types de chambres (catalogue public)
 app.get('/api/types-chambres', async (req, res) => {
   try {
+    let hotelSlug = req.query.hotel_slug;
+
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const decoded = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
+        const userSlug = getHotelSlugForUser(decoded.email);
+        if (userSlug) hotelSlug = userSlug;
+      } catch {}
+    }
+
+    const where = {};
+    if (hotelSlug) {
+      where.hotel_slug = hotelSlug;
+    }
+
     const types = await prisma.typeChambre.findMany({
+      where,
       include: {
         _count: { select: { chambres: true } },
         chambres: { where: { statut: 'disponible' }, select: { id: true } },
@@ -782,8 +799,26 @@ app.patch('/api/admin/commandes/:id/statut', adminMiddleware, async (req, res) =
 
 app.get('/api/admin/utilisateurs', adminMiddleware, async (req, res) => {
   try {
+    const hotelSlug = getHotelSlugForUser(req.user?.email);
+    const where = {};
+    if (hotelSlug) {
+      where.reservations = {
+        some: {
+          hotel_slug: hotelSlug
+        }
+      };
+    }
     const utilisateurs = await prisma.utilisateur.findMany({
-      include: { profil: true, _count: { select: { reservations: true, commandes: true } } },
+      where,
+      include: {
+        profil: true,
+        _count: {
+          select: {
+            reservations: hotelSlug ? { where: { hotel_slug: hotelSlug } } : true,
+            commandes: hotelSlug ? { where: { hotel_slug: hotelSlug } } : true,
+          }
+        }
+      },
       orderBy: { created_at: 'desc' },
     });
     const result = utilisateurs.map(({ password_hash, ...u }) => u);

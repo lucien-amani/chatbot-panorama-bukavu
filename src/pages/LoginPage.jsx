@@ -82,8 +82,8 @@ export default function LoginPage() {
       <div className="login-wrapper">
         {/* ── Panneau gauche — branding ── */}
         <div className="login-brand">
-          <img src="/panorama.png" alt="Panorama" className="login-brand-logo" />
-          <h1 className="login-brand-name">Hôtel Panorama</h1>
+          <img src="/panorama.png" alt="Bukavu Hotels" className="login-brand-logo" />
+          <h1 className="login-brand-name">Bukavu Hotels</h1>
           <p className="login-brand-tagline">Bukavu, République Démocratique du Congo</p>
           <div className="login-brand-features">
             {['Réservations en ligne', 'Service room 24h/24', 'Vue panoramique Lac Kivu', 'Espace administration'].map(f => (
@@ -94,7 +94,7 @@ export default function LoginPage() {
             ))}
           </div>
           <div className="login-brand-footer">
-            © {new Date().getFullYear()} Panorama Bukavu — Tous droits réservés
+            © {new Date().getFullYear()} Bukavu Hotels — Tous droits réservés
           </div>
         </div>
 
@@ -117,7 +117,7 @@ export default function LoginPage() {
           </div>
 
           <div className="login-form-header">
-            <h2>{isLogin ? 'Bon retour parmi nous' : 'Rejoindre Panorama'}</h2>
+            <h2>{isLogin ? 'Bon retour parmi nous' : 'Rejoindre Bukavu Hotels'}</h2>
             <p>{isLogin ? 'Connectez-vous pour accéder à votre espace' : 'Créez votre compte client en quelques secondes'}</p>
           </div>
 

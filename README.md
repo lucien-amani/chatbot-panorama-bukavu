@@ -1,6 +1,6 @@
-# 🏨 Panorama Bukavu - Système de Réservation Multi-Hôtels & Assistant IA
+# 🏨 Bukavu Hotels - Système de Réservation Multi-Hôtels & Assistant IA
 
-**Panorama Bukavu** est une plateforme web moderne et premium de gestion de réservations et d'assistance client multi-hôtels pour les établissements de Bukavu (République Démocratique du Congo). 
+**Bukavu Hotels** est une plateforme web moderne et premium de gestion de réservations et d'assistance client multi-hôtels pour les établissements de Bukavu (République Démocratique du Congo). 
 
 L'application intègre un **Assistant IA contextuel** de pointe, ainsi qu'un tableau de bord d'administration multi-tenant sécurisé.
 

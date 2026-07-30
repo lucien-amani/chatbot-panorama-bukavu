@@ -53,9 +53,9 @@ export default function Navbar() {
         <div className="navbar-inner">
           {/* Logo */}
           <Link to="/" className="navbar-logo">
-            <img src="/panorama.png" alt="Hôtel Panorama" className="navbar-logo-img" />
+            <img src="/panorama.png" alt="Bukavu Hotels" className="navbar-logo-img" />
             <span className="navbar-logo-text">
-              <span className="navbar-logo-name">Hôtel Panorama</span>
+              <span className="navbar-logo-name">Bukavu Hotels</span>
               <span className="navbar-logo-sub">Bukavu · RDC</span>
             </span>
           </Link>

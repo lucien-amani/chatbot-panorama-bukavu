@@ -55,7 +55,7 @@ export const chambresApi = {
   },
 
   /** Catalogue des types de chambres (page publique) */
-  types: () => apiFetch('/api/types-chambres'),
+  types: (hotel_slug = null) => apiFetch(`/api/types-chambres${hotel_slug ? `?hotel_slug=${hotel_slug}` : ''}`),
 
   /** Changer statut d'une chambre (admin) */
   changerStatut: (id, statut) =>

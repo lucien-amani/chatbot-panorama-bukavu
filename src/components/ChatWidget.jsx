@@ -10,7 +10,7 @@ const BotAvatar = () => {
   return (
     <div className="cw-avatar bot overflow-hidden flex items-center justify-center bg-[var(--surface-hover)]">
       {!imgError ? (
-        <img src="/panorama.png" alt="Panorama Assist"
+        <img src="/panorama.png" alt="Bukavu Hotels Assist"
           onError={() => setImgError(true)}
           style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
       ) : (
@@ -276,12 +276,12 @@ export default function ChatWidget() {
       <button
         className={`cw-fab ${open ? 'open' : ''}`}
         onClick={() => setOpen(o => !o)}
-        aria-label="Ouvrir Panorama Assist"
-        title="Panorama Assist"
+        aria-label="Ouvrir Bukavu Hotels Assist"
+        title="Bukavu Hotels Assist"
       >
         {open
           ? <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-          : <img src="/panorama.png" alt="Panorama Assist" className="cw-fab-img" />
+          : <img src="/panorama.png" alt="Bukavu Hotels Assist" className="cw-fab-img" />
         }
         <span className="cw-fab-badge" />
       </button>
@@ -291,9 +291,9 @@ export default function ChatWidget() {
         {/* Header */}
         <div className="cw-header">
           <div className="cw-header-info">
-            <img src="/panorama.png" alt="Panorama Assist" className="cw-header-logo" />
+            <img src="/panorama.png" alt="Bukavu Hotels Assist" className="cw-header-logo" />
             <div>
-              <div className="cw-header-title">Panorama Assist</div>
+              <div className="cw-header-title">Bukavu Hotels Assist</div>
               <div className="cw-header-status">
                 <span className="cw-dot" /> En ligne
                 <span style={{ color: 'var(--accent-color)', fontSize: '0.65rem', marginLeft: '0.3rem' }}>· 🎙 AI Voice</span>
@@ -430,7 +430,7 @@ export default function ChatWidget() {
               {messages.length === 0 && (
                 <div className="cw-welcome flex flex-col items-center">
                   <BotAvatar />
-                  <p className="cw-welcome-text mt-3">Bonjour ! Je suis <strong>Panorama Assist</strong>.<br />Je vous aide à trouver et réserver dans les meilleurs hôtels de <strong>Bukavu</strong>.</p>
+                  <p className="cw-welcome-text mt-3">Bonjour ! Je suis <strong>Bukavu Hotels Assist</strong>.<br />Je vous aide à trouver et réserver dans les meilleurs hôtels de <strong>Bukavu</strong>.</p>
                   <div className="cw-chips">
                     {SUGGESTIONS.map(s => {
                       const I = s.icon;

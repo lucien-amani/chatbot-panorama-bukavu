@@ -102,7 +102,7 @@ function buildSystemInstruction(chambresData) {
 
   const hotelsCatalogue = buildHotelsCatalogue();
 
-  return `Tu es **Panorama Assist**, l'assistant virtuel officiel de la **plateforme de réservation hôtelière de Bukavu** (République Démocratique du Congo).
+  return `Tu es **Bukavu Hotels Assist**, l'assistant virtuel officiel de la **plateforme Bukavu Hotels** (République Démocratique du Congo).
 
 ---
 
