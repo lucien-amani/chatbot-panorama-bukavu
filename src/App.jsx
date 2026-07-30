@@ -46,6 +46,7 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/chambres" element={<RoomsPage />} />
+          <Route path="/hotel/:slug" element={<RoomsPage />} />
           <Route path="/reservation" element={<ProtectedRoute><BookingPage /></ProtectedRoute>} />
           <Route path="/profil" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           <Route path="/mes-reservations" element={<ProtectedRoute><MyReservationsPage /></ProtectedRoute>} />

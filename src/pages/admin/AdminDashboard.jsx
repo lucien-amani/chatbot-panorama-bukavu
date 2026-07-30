@@ -1,8 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Bed, ClipboardList, Utensils, DollarSign, LayoutDashboard, Users, User, UserCog, RefreshCw, Bell, LogOut, Menu, X, Camera, ExternalLink, Globe, Loader2, Pencil, FileText } from 'lucide-react';
+import { Bed, ClipboardList, Utensils, DollarSign, LayoutDashboard, Users, User, UserCog, RefreshCw, Bell, LogOut, Menu, X, Camera, ExternalLink, Globe, Loader2, Pencil, FileText, Hotel } from 'lucide-react';
 import { statsApi, chambresApi, reservationsApi, commandesApi, notificationsApi, utilisateursApi } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
+import hotelsData from '../../../hotels.json';
+
+// Retrouve l'hôtel géré par un admin à partir de son email/nom
+function getHotelForAdmin(email) {
+  if (!email || email === 'okokaroland@gmail.com') return null;
+  return hotelsData.hotels.find(
+    h => h.name.toLowerCase() === email.toLowerCase() || h.slug.toLowerCase() === email.toLowerCase()
+  ) || null;
+}
 
 /* =========================================================
    CONFIG & UTILS
@@ -954,12 +963,15 @@ export default function AdminDashboard() {
       <aside className={`admin-sidebar ${sidebarOpen ? '' : 'collapsed'}`}>
         <div className="admin-sidebar-brand">
           <img src="/panorama.png" alt="Panorama" className="admin-brand-img" />
-          {sidebarOpen && (
-            <div>
-              <div className="admin-brand-name">Panorama</div>
-              <div className="admin-brand-role">Administration</div>
-            </div>
-          )}
+          {sidebarOpen && (() => {
+            const managedHotel = getHotelForAdmin(user?.email);
+            return (
+              <div>
+                <div className="admin-brand-name">{managedHotel ? managedHotel.name : 'Panorama'}</div>
+                <div className="admin-brand-role">{managedHotel ? '🏨 Admin Hôtel' : '⭐ Super Admin'}</div>
+              </div>
+            );
+          })()}
         </div>
 
         <nav className="admin-nav">

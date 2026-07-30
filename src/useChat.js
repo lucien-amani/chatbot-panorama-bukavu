@@ -15,17 +15,16 @@ export function useChat() {
     messagesRef.current = messages;
   }, [messages]);
 
-  // Charger les données des chambres au démarrage — injectées dans le system prompt
+  // Charger les données de chambres de tous les hôtels au démarrage — injectées dans le system prompt
   useEffect(() => {
-    chambresApi.liste()
+    // On charge sans filtre hotel_slug pour avoir tous les hôtels
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/chambres`)
+      .then(r => r.ok ? r.json() : [])
       .then(data => {
-        setChambresData(data);
-        chatRef.current = null; // Reset session pour la recréer avec les nouvelles données
+        setChambresData(Array.isArray(data) ? data : []);
+        chatRef.current = null;
       })
-      .catch(() => {
-        // Si l'API est indisponible, le chatbot continuera sans données de chambres
-        setChambresData([]);
-      });
+      .catch(() => setChambresData([]));
   }, []);
 
   // Initialise ou réutilise la session Gemini (avec données chambres)
@@ -55,8 +54,8 @@ export function useChat() {
       // Fetch fresh room data before sending message to get real-time status/price/availability
       let freshRooms = chambresData;
       try {
-        freshRooms = await chambresApi.liste();
-        setChambresData(freshRooms);
+        const r = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/chambres`);
+        if (r.ok) { freshRooms = await r.json(); setChambresData(freshRooms); }
       } catch (fetchErr) {
         console.warn('Could not fetch fresh room data, using cached data:', fetchErr);
       }

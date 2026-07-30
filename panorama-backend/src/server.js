@@ -12,6 +12,19 @@ const prisma = new PrismaClient();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Importation de la liste des hôtels
+const hotelsData = require('../../hotels.json');
+
+// Utilitaire pour obtenir le hotel_slug associé à un admin connecté
+function getHotelSlugForUser(email) {
+  if (!email || email === 'okokaroland@gmail.com') return null;
+  // Rechercher l'hôtel par son nom exact ou son slug
+  const hotel = hotelsData.hotels.find(
+    h => h.name.toLowerCase() === email.toLowerCase() || h.slug.toLowerCase() === email.toLowerCase()
+  );
+  return hotel ? hotel.slug : null;
+}
+
 // ── Middlewares ───────────────────────────────────────────
 app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:4173'], credentials: true }));
 app.use(express.json({ limit: '10mb' }));
@@ -44,14 +57,14 @@ function adminMiddleware(req, res, next) {
 
 app.get('/api/setup-admin', async (req, res) => {
   try {
-    const email = 'luciusamani@gmail.com';
-    const password = 'Lucien-Amani1234';
+    const email = 'okokaroland@gmail.com';
+    const password = 'okokaroland@gmail.com';
     const salt = bcrypt.genSaltSync(10);
     const password_hash = bcrypt.hashSync(password, salt);
     const user = await prisma.utilisateur.upsert({
       where: { email },
-      update: { password_hash, est_admin: true },
-      create: { email, password_hash, nom_affiche: 'Lucien Amani (Admin)', est_admin: true },
+      update: { password_hash, est_admin: true, nom_affiche: 'Roland Okoko (Super Admin)' },
+      create: { email, password_hash, nom_affiche: 'Roland Okoko (Super Admin)', est_admin: true },
     });
     const { password_hash: _, ...userData } = user;
     res.json({ message: 'Super-Admin configuré !', user: userData });
@@ -135,10 +148,17 @@ app.put('/api/auth/profile', authMiddleware, async (req, res) => {
 
 app.get('/api/admin/stats', adminMiddleware, async (req, res) => {
   try {
+    const hotelSlug = getHotelSlugForUser(req.user?.email);
+
     const now = new Date();
     const debut_mois = new Date(now.getFullYear(), now.getMonth(), 1);
     const debut_mois_prec = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const fin_mois_prec = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    // Filtres
+    const chambresFilter = hotelSlug ? { hotel_slug: hotelSlug } : {};
+    const reservationsFilter = hotelSlug ? { hotel_slug: hotelSlug } : {};
+    const commandesFilter = hotelSlug ? { hotel_slug: hotelSlug } : {};
 
     const [
       totalChambres,
@@ -151,26 +171,37 @@ app.get('/api/admin/stats', adminMiddleware, async (req, res) => {
       caMoisPrec,
       notificationsNonLues,
     ] = await Promise.all([
-      prisma.chambre.count(),
-      prisma.chambre.count({ where: { statut: 'disponible' } }),
-      prisma.reservation.count({ where: { statut: { in: ['confirmee', 'payee', 'en_sejour', 'en_attente'] } } }),
+      prisma.chambre.count({ where: chambresFilter }),
+      prisma.chambre.count({ where: { ...chambresFilter, statut: 'disponible' } }),
+      prisma.reservation.count({ where: { ...reservationsFilter, statut: { in: ['confirmee', 'payee', 'en_sejour', 'en_attente'] } } }),
       prisma.reservation.count({
         where: {
+          ...reservationsFilter,
           date_arrivee: { gte: new Date(now.toDateString()), lt: new Date(new Date(now.toDateString()).getTime() + 86400000) },
           statut: { in: ['confirmee', 'payee'] },
         },
       }),
-      prisma.commande.count({ where: { statut: { in: ['en_attente', 'en_preparation', 'prete'] } } }),
-      prisma.commande.count({ where: { statut: 'en_preparation' } }),
+      prisma.commande.count({ where: { ...commandesFilter, statut: { in: ['en_attente', 'en_preparation', 'prete'] } } }),
+      prisma.commande.count({ where: { ...commandesFilter, statut: 'en_preparation' } }),
       prisma.reservation.aggregate({
-        where: { created_at: { gte: debut_mois }, statut: { not: 'annulee' } },
+        where: { ...reservationsFilter, created_at: { gte: debut_mois }, statut: { not: 'annulee' } },
         _sum: { montant_total: true },
       }),
       prisma.reservation.aggregate({
-        where: { created_at: { gte: debut_mois_prec, lte: fin_mois_prec }, statut: { not: 'annulee' } },
+        where: { ...reservationsFilter, created_at: { gte: debut_mois_prec, lte: fin_mois_prec }, statut: { not: 'annulee' } },
         _sum: { montant_total: true },
       }),
-      prisma.notification.count({ where: { est_lue: false } }),
+      prisma.notification.count({
+        where: {
+          est_lue: false,
+          ...(hotelSlug ? {
+            OR: [
+              { reservation: { hotel_slug: hotelSlug } },
+              { commande: { hotel_slug: hotelSlug } }
+            ]
+          } : {})
+        }
+      }),
     ]);
 
     const caMoisVal = caMois._sum.montant_total || 0;
@@ -198,7 +229,22 @@ app.get('/api/admin/stats', adminMiddleware, async (req, res) => {
 app.get('/api/chambres', async (req, res) => {
   try {
     const { statut } = req.query;
-    const where = statut ? { statut } : {};
+    let hotelSlug = req.query.hotel_slug;
+
+    // Vérifier si l'appelant est un admin connecté
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const decoded = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
+        const userSlug = getHotelSlugForUser(decoded.email);
+        if (userSlug) hotelSlug = userSlug;
+      } catch {}
+    }
+
+    const where = {};
+    if (statut) where.statut = statut;
+    if (hotelSlug) where.hotel_slug = hotelSlug;
+
     const chambres = await prisma.chambre.findMany({
       where,
       include: { 
@@ -220,8 +266,20 @@ app.get('/api/chambres', async (req, res) => {
 app.get('/api/chambres/disponibles', async (req, res) => {
   try {
     const { date_arrivee, date_depart, type } = req.query;
+    let hotelSlug = req.query.hotel_slug;
+
+    // Vérifier si l'appelant est un admin connecté
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const decoded = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
+        const userSlug = getHotelSlugForUser(decoded.email);
+        if (userSlug) hotelSlug = userSlug;
+      } catch {}
+    }
 
     let whereType = { statut: { not: 'maintenance' } };
+    if (hotelSlug) whereType.hotel_slug = hotelSlug;
     if (type) whereType.type_chambre = { nom: { contains: type, mode: 'insensitive' } };
 
     const toutesChambres = await prisma.chambre.findMany({
@@ -323,6 +381,15 @@ app.patch('/api/admin/chambres/:id/statut', adminMiddleware, async (req, res) =>
 app.post('/api/admin/chambres', adminMiddleware, async (req, res) => {
   try {
     const { numero_chambre, type_chambre_id, etage, statut, notes, image_url } = req.body;
+    const hotelSlug = getHotelSlugForUser(req.user?.email);
+
+    if (hotelSlug) {
+      const typeChambre = await prisma.typeChambre.findFirst({ where: { id: type_chambre_id } });
+      if (typeChambre && typeChambre.hotel_slug !== hotelSlug) {
+        return res.status(403).json({ error: "Interdit d'ajouter des chambres dans un autre hôtel." });
+      }
+    }
+
     const chambre = await prisma.chambre.create({
       data: {
         numero_chambre,
@@ -331,6 +398,7 @@ app.post('/api/admin/chambres', adminMiddleware, async (req, res) => {
         statut: statut || 'disponible',
         notes: notes || null,
         image_url: image_url || null,
+        hotel_slug: hotelSlug || 'hotel-panorama',
       },
       include: { type_chambre: true },
     });
@@ -344,6 +412,15 @@ app.post('/api/admin/chambres', adminMiddleware, async (req, res) => {
 app.put('/api/admin/chambres/:id', adminMiddleware, async (req, res) => {
   try {
     const { numero_chambre, type_chambre_id, etage, statut, notes, image_url } = req.body;
+    const hotelSlug = getHotelSlugForUser(req.user?.email);
+
+    if (hotelSlug) {
+      const currentChambre = await prisma.chambre.findFirst({ where: { id: req.params.id } });
+      if (!currentChambre || currentChambre.hotel_slug !== hotelSlug) {
+        return res.status(403).json({ error: "Interdit de modifier une chambre d'un autre hôtel." });
+      }
+    }
+
     const chambre = await prisma.chambre.update({
       where: { id: req.params.id },
       data: {
@@ -369,7 +446,13 @@ app.put('/api/admin/chambres/:id', adminMiddleware, async (req, res) => {
 app.get('/api/reservations', adminMiddleware, async (req, res) => {
   try {
     const { statut, limit = 50 } = req.query;
+    const hotelSlug = getHotelSlugForUser(req.user?.email);
+    
     const where = statut ? { statut } : {};
+    if (hotelSlug) {
+      where.hotel_slug = hotelSlug;
+    }
+
     const reservations = await prisma.reservation.findMany({
       where,
       include: {
@@ -459,6 +542,7 @@ app.post('/api/reservations', authMiddleware, async (req, res) => {
     const reservation = await prisma.reservation.create({
       data: {
         utilisateur_id: req.user.id,
+        hotel_slug: chambre.hotel_slug, // Lier à l'hôtel de la chambre
         statut: 'en_attente',
         montant_total,
         date_arrivee: new Date(date_arrivee),
@@ -576,7 +660,13 @@ app.patch('/api/admin/plats/:id', adminMiddleware, async (req, res) => {
 app.get('/api/admin/commandes', adminMiddleware, async (req, res) => {
   try {
     const { statut } = req.query;
+    const hotelSlug = getHotelSlugForUser(req.user?.email);
+
     const where = statut ? { statut } : { statut: { notIn: ['terminee', 'annulee'] } };
+    if (hotelSlug) {
+      where.hotel_slug = hotelSlug;
+    }
+
     const commandes = await prisma.commande.findMany({
       where,
       include: {
@@ -597,11 +687,21 @@ app.post('/api/commandes', authMiddleware, async (req, res) => {
   try {
     const montant_total = articles.reduce((sum, a) => sum + (a.prix_unitaire * a.quantite), 0);
 
+    let hotel_slug = 'hotel-panorama';
+    if (chambre_id) {
+      const chambre = await prisma.chambre.findUnique({ where: { id: chambre_id } });
+      if (chambre) hotel_slug = chambre.hotel_slug;
+    } else if (reservation_id) {
+      const reservation = await prisma.reservation.findUnique({ where: { id: reservation_id } });
+      if (reservation) hotel_slug = reservation.hotel_slug;
+    }
+
     const commande = await prisma.commande.create({
       data: {
         utilisateur_id: req.user.id,
         reservation_id: reservation_id || null,
         chambre_id: chambre_id || null,
+        hotel_slug,
         type_commande,
         statut: 'en_attente',
         montant_total,
@@ -699,8 +799,17 @@ app.get('/api/admin/utilisateurs', adminMiddleware, async (req, res) => {
 
 app.get('/api/admin/notifications', adminMiddleware, async (req, res) => {
   try {
+    const hotelSlug = getHotelSlugForUser(req.user?.email);
     const notifications = await prisma.notification.findMany({
-      where: { est_lue: false },
+      where: {
+        est_lue: false,
+        ...(hotelSlug ? {
+          OR: [
+            { reservation: { hotel_slug: hotelSlug } },
+            { commande: { hotel_slug: hotelSlug } }
+          ]
+        } : {})
+      },
       include: {
         commande: { select: { type_commande: true } },
         reservation: { select: { utilisateur: { select: { nom_affiche: true } } } },

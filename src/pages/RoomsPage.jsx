@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Users, Star, Wifi, Coffee, Wind, Tv, Bath, Search,
   SlidersHorizontal, CheckCircle2, XCircle, ChevronDown,
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { chambresApi } from '../lib/api';
 import DateRangePicker from '../components/DateRangePicker';
+import hotelsData from '../../hotels.json';
 
 const AMENITY_ICONS = {
   'Wi-Fi': Wifi, 'WiFi': Wifi, 'Wifi gratuit': Wifi,
@@ -282,6 +283,11 @@ function RoomCard({ chambre, disponibiliteIds, onReserver, viewMode = 'grid' }) 
 
 export default function RoomsPage() {
   const navigate = useNavigate();
+  const { slug } = useParams(); // présent si route /hotel/:slug
+
+  // Hôtel correspondant au slug (si venu depuis le chatbot)
+  const hotelActif = slug ? (hotelsData.hotels.find(h => h.slug === slug) || null) : null;
+
   const [chambres, setChambres] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -300,11 +306,16 @@ export default function RoomsPage() {
   const today = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
-    chambresApi.liste()
+    // Charger les chambres en filtrant par hotel_slug si présent dans l'URL
+    const url = slug
+      ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/chambres?hotel_slug=${slug}`
+      : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/chambres`;
+    fetch(url)
+      .then(r => r.ok ? r.json() : Promise.reject(new Error('Erreur API')))
       .then(setChambres)
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [slug]);
 
   const verifierDisponibilite = async () => {
     if (!dateArrivee || !dateDepart) return;
@@ -327,6 +338,8 @@ export default function RoomsPage() {
         type_id: t.id,
         type_nom: t.nom,
         prix: t.prix_base_nuit,
+        hotel_slug: ch.hotel_slug || slug || 'hotel-panorama',
+        hotel_nom: hotelActif?.name || null,
         date_arrivee: dateArrivee,
         date_depart: dateDepart,
       }
@@ -453,11 +466,18 @@ export default function RoomsPage() {
       {/* ── HEADER ── */}
       <div className="pt-8 pb-4 text-center max-w-3xl mx-auto px-4">
         <h1 className="text-3xl md:text-4xl font-extrabold text-[var(--text-main)] tracking-tight">
-          Nos Chambres & Suites
+          {hotelActif ? hotelActif.name : 'Nos Chambres & Suites'}
         </h1>
         <p className="mt-2 text-sm text-[var(--text-muted)] leading-relaxed">
-          Découvrez notre sélection de chambres haut de gamme alliant confort, élégance et modernité à Bukavu.
+          {hotelActif
+            ? `${hotelActif.category} · ${hotelActif.address?.street}, Bukavu · ${hotelActif.description?.summary}`
+            : 'Découvrez notre sélection de chambres haut de gamme alliant confort, élégance et modernité à Bukavu.'}
         </p>
+        {hotelActif?.contact?.phone && (
+          <p className="mt-1 text-xs text-[var(--accent-color)] font-semibold">
+            📞 {hotelActif.contact.phone}
+          </p>
+        )}
       </div>
 
       {/* ── HORIZONTAL FILTERS BAR (STICKY) ── */}

@@ -1,227 +1,179 @@
-# Panorama Assist - Assistant Client IA pour l'Hôtellerie
+# 🏨 Panorama Bukavu - Système de Réservation Multi-Hôtels & Assistant IA
 
-**Panorama Assist** (anciennement Karibot) est un système d'assistance client multilingue basé sur l'Intelligence Artificielle, conçu spécifiquement pour les établissements hôteliers, avec un cas d'usage ciblé pour l'Hôtel Panorama à Bukavu.
+**Panorama Bukavu** est une plateforme web moderne et premium de gestion de réservations et d'assistance client multi-hôtels pour les établissements de Bukavu (République Démocratique du Congo). 
 
-Ce projet s'inscrit dans le cadre du sujet : **« Développement d'un système multilingue d'assistance client basé sur l'IA pour les hôtels dans les pays à faible revenu »** (*Development of a multi-lingual AI based customer care system for hotels in low-income countries*).
-
+L'application intègre un **Assistant IA contextuel** de pointe, ainsi qu'un tableau de bord d'administration multi-tenant sécurisé.
 
 ---
 
 ## 🌟 Objectifs & Philosophie
 
-Panorama Assist vise à rendre l'assistance client accessible aux établissements hôteliers qui ont des contraintes financières et techniques :
-
-- **Économique :** Coûts d'infrastructure réduits en s'appuyant sur des options gratuites ou peu coûteuses.
-- **Accessible :** Déploiement simple sans besoin immédiat de services cloud payants ni de cartes bancaires internationales pour la phase de démarrage.
-- **Premium :** Interface utilisateur moderne et élégante inspirée des codes de l'hôtellerie de luxe.
+*   **Multi-Hôtels & Multi-Tenancy** : Une base de données unifiée permettant à plus de 14 hôtels de Bukavu de posséder leur propre tableau de bord d'administration isolé.
+*   **Intelligence Artificielle Locale** : Assistant IA entraîné avec tout le catalogue de Bukavu, capable d'orienter les visiteurs et de faciliter les réservations directes.
+*   **Accessibilité vocale** : Synthèse vocale ultra-réaliste (TTS ElevenLabs) et reconnaissance vocale (STT intégrée au navigateur) pour rendre le service accessible à tous.
+*   **Design Premium** : Charte graphique moderne, sombre et épurée (glassmorphisme, animations fluides) adaptée aux standards de l'hôtellerie de luxe.
 
 ---
 
 ## ✨ Fonctionnalités Clés
 
-- Chatbot intelligent multilingue (FR/EN/SW/ln) alimenté par Gemini
-- Support audio : reconnaissance vocale (STT) et synthèse vocale (TTS) via Web Speech API
-- Interface responsive et mobile-first avec barre de navigation inférieure
-- Rendu Markdown avec mise en forme et blocs de code copiables
-- Gestion d'historique des conversations (stockage local) et sessions multi-chats
-- Gestion simple des clés API et mécanisme d'avertissement en cas de quotas atteints
-- Persona métier (instructions système) pour contextualiser les réponses au service de l'hôtel
+*   **Assistant Client intelligent (Gemini)** : Répond précisément aux questions des clients sur tous les hôtels (services, équipements, prix, adresse, etc.) en se basant sur le catalogue `hotels.json` et les disponibilités des chambres de la base de données.
+*   **Intégration Vocale Avancée** :
+    *   **Speech-to-Text (STT)** : Dictée vocale via l'API Web Speech du navigateur.
+    *   **Text-to-Speech (TTS) ElevenLabs** : Synthèse vocale de haute qualité avec voix naturelles (configurable via clé API).
+*   **Réservations et Commandes** :
+    *   Réservation en ligne de chambres filtrées par hôtel.
+    *   Commandes de Room-Service (plats et boissons) liées à une chambre active.
+*   **Dashboards Administrateurs Isolés (Multi-Tenant)** :
+    *   **Super-Admin** (`okokaroland@gmail.com`) : Vue globale sur tous les hôtels, statistiques consolidées et gestion globale des chambres.
+    *   **Admins Hôteliers** (ex: `Orchids' Safari Club`, `Hôtel Panorama`) : Tableaux de bord personnalisés aux couleurs de l'hôtel, restreints à leurs propres chambres, réservations, commandes et notifications.
 
 ---
 
 ## 🛠️ Stack Technique
 
-- Frontend : React 19, Vite
-- Styling : Tailwind CSS, Lucide / Heroicons
-- SDK IA : `@google/genai` (Gemini)
-- Backend & données : PocketBase / Prisma & SQLite (voir note ci‑dessous)
-- Synthèse et reconnaissance vocale : Web Speech API (navigateur)
-- Outils de développement : ESLint
-
-Composition des langages du projet (analyse du dépôt) :
-
-- JavaScript : 72.5%
-- CSS : 25.9%
-- Shell : 1.1%
-- Other : 0.5%
+*   **Frontend** : React 19, Vite, Tailwind CSS, Lucide Icons, React Router DOM.
+*   **Backend** : Node.js, Express.
+*   **Base de données** : PostgreSQL avec l'ORM Prisma.
+*   **Modèles IA & Audio** :
+    *   Google Gemini API (via `@google/genai`).
+    *   ElevenLabs API (pour la voix off ultra-réaliste).
+    *   Web Speech API (reconnaissance vocale intégrée).
 
 ---
 
-## 🔎 Base de données (Important)
+## 🗄️ Architecture Base de Données (PostgreSQL & Prisma)
 
-Le backend principal (`panorama-backend/`) utilise PostgreSQL via Prisma. Les fichiers importants sont :
-
-- `panorama-backend/prisma/schema.prisma` — datasource configurée avec `provider = "postgresql"` et `url = env("DATABASE_URL")`.
-- `setup-postgres.sh` — script d'installation/initialisation PostgreSQL (création de la base, utilisateur, migrations et seed).
-
-NOTE : Il existe également un fichier `prisma/schema.prisma` à la racine du dépôt (legacy) qui est configuré pour SQLite. Ce fichier est conservé pour des scénarios locaux simples mais **ne doit pas** être utilisé pour les migrations/production du backend. Voir la section "Notes Prisma" plus bas.
+Toute la persistance des données a été migrée de PocketBase vers **PostgreSQL**.
+Les fichiers de configuration clés se trouvent dans le répertoire `panorama-backend/` :
+*   `prisma/schema.prisma` : Modèle de données comprenant les tables `Utilisateur`, `Profil`, `TypeChambre`, `Chambre`, `Reservation`, `LigneReservation`, `Plat`, `Commande` et `Notification`.
+*   `prisma/seed.js` : Script de seeding pour initialiser le Super-Admin, les 14 comptes administrateurs d'hôtels, ainsi que le catalogue de chambres et de plats du room-service.
 
 ---
 
-## 🧩 Configuration de la variable DATABASE_URL
+## 🚀 Guide d'Installation et Configuration
 
-Pour connecter le backend à PostgreSQL, définissez la variable d'environnement `DATABASE_URL`. Exemple de valeur :
-
-```text
-DATABASE_URL=postgresql://panorama_user:panorama2026@localhost:5432/panorama_bukavu?schema=public
-```
-
-Options pour définir la variable :
-
-- Créez un fichier `.env` ou `.env.local` à la racine du projet (ou dans `panorama-backend/`, selon votre workflow) et ajoutez la ligne ci‑dessus (en remplaçant l'utilisateur, mot de passe, hôte et port).
-- Exportez temporairement dans votre shell :
-
-```bash
-export DATABASE_URL="postgresql://user:pass@host:5432/dbname?schema=public"
-```
+### 💻 Prérequis
+*   Node.js (v18+) et npm.
+*   PostgreSQL installé et en cours d'exécution.
+*   Clé API Gemini (obtenue sur Google AI Studio).
+*   *(Optionnel)* Clé API ElevenLabs et ID de voix.
 
 ---
 
-## 🚀 Initialiser PostgreSQL et appliquer les migrations
+### 📥 1. Installation
 
-1. Assurez-vous d'avoir PostgreSQL installé et le service en cours d'exécution.
-2. Exécutez le script d'installation fourni (il crée la base et l'utilisateur, installe les dépendances backend, applique les migrations Prisma et lance le seed) :
-
-```bash
-bash setup-postgres.sh
-```
-
-3. Si vous préférez appliquer manuellement les migrations, placez `DATABASE_URL` dans votre environnement puis exécutez depuis `panorama-backend/` :
-
-```bash
-cd panorama-backend
-npx prisma migrate deploy --schema=./prisma/schema.prisma
-node prisma/seed.js
-```
-
----
-
-## 💻 Prérequis
-
-- Node.js (recommandé v18+)
-- npm (ou yarn)
-- PostgreSQL (si vous activez le backend PostgreSQL)
-- Un compte Google pour créer une clé API Gemini via Google AI Studio si vous souhaitez utiliser votre propre quota
-
----
-
-## Installation et Démarrage
-
-1. Cloner le dépôt :
-
+Clonez le projet et installez les dépendances :
 ```bash
 git clone https://github.com/lucien-amani/chatbot-panorama-bukavu.git
 cd chatbot-panorama-bukavu
 npm install
-```
 
-2. Configuration des variables d'environnement
-
-Créez un fichier `.env` ou `.env.local` à la racine et ajoutez (ou collez) votre clé Gemini et la DATABASE_URL si vous utilisez PostgreSQL :
-
-```env
-VITE_GEMINI_API_KEY=VOTRE_CLE_GEMINI
-DATABASE_URL=postgresql://panorama_user:panorama2026@localhost:5432/panorama_bukavu?schema=public
-VITE_API_URL=http://localhost:5000
-```
-
-3. Lancer en développement (frontend) :
-
-```bash
-npm run dev
-```
-
-Si vous utilisez le backend local (`panorama-backend/`), démarrez-le séparément :
-
-```bash
+# Installer le backend
 cd panorama-backend
 npm install
-npm run dev
 ```
 
 ---
 
-## Commandes utiles
+### 🔧 2. Configuration des Variables d'Environnement
+
+#### A. Fichier `.env` à la racine (Frontend)
+Créez un fichier `.env` dans le répertoire principal `chatbot-panorama-bukavu/` :
+```env
+VITE_GEMINI_API_KEY=VOTRE_CLE_GEMINI
+VITE_API_URL=http://localhost:5000
+
+# Optionnel : ElevenLabs
+VITE_ELEVENLABS_API_KEY=VOTRE_CLE_ELEVENLABS
+VITE_ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM
+```
+
+#### B. Fichier `.env` dans `panorama-backend/` (Backend)
+Créez un fichier `.env` dans `panorama-backend/` :
+```env
+PORT=5000
+DATABASE_URL="postgresql://utilisateur:motdepasse@localhost:5432/nom_de_base?schema=public"
+JWT_SECRET=super_secret_cle_jwt_2026
+```
+
+---
+
+### ⚡ 3. Démarrage de la Base de Données & Seeding
+
+#### 🐧 Sur Linux :
+Vous pouvez utiliser le script automatique d'initialisation :
+```bash
+# Rendre le script exécutable
+chmod +x setup-postgres.sh
+# Lancer l'initialisation
+./setup-postgres.sh
+```
+
+#### 🪟 Sur Windows (ou en mode Manuel) :
+1. Créez manuellement la base de données PostgreSQL (ex: `panorama_bukavu`).
+2. Appliquez les migrations Prisma depuis le dossier `panorama-backend` :
+   ```bash
+   cd panorama-backend
+   npx prisma migrate dev --name init
+   ```
+3. Exécutez le script pour charger les données initiales (seeding) :
+   ```bash
+   npm run seed
+   ```
+
+---
+
+### 💻 4. Lancement des Serveurs de Développement
+
+Démarrez les deux serveurs en parallèle dans des terminaux distincts :
+
+#### Terminal 1 : Backend Express
+```bash
+cd panorama-backend
+npm run dev
+```
+
+#### Terminal 2 : Frontend Vite (React)
+```bash
+cd ..
+npm run dev
+```
+Ouvrez votre navigateur à l'adresse fournie (généralement `http://localhost:5173`).
+
+---
+
+## 🛠️ Commandes Utiles
 
 ```bash
-# Démarrer le serveur de développement frontend
+# Lancer le frontend (Vite)
 npm run dev
 
-# Démarrer le backend (depuis panorama-backend/)
-cd panorama-backend && npm run dev
+# Lancer le backend (dossier panorama-backend/)
+npm run dev
 
-# Construire pour la production (frontend)
+# Compiler le projet pour la production (frontend)
 npm run build
 
-# Linter
-npm run lint
+# Réinitialiser la DB et relancer le Seed
+npx prisma migrate reset --force
 ```
 
 ---
 
-## Notes Prisma
+## 🔑 Identifiants d'Administration Initiaux
 
-- Backend (production / dev réel) : utilisez le fichier `panorama-backend/prisma/schema.prisma` (provider = postgresql). Placez `DATABASE_URL` dans votre environnement avant d'exécuter les migrations.
-- Fichier root `prisma/schema.prisma` : maintenu comme fichier utile pour des tests locaux rapides (SQLite). Il est volontairement conservé mais **n'est pas** celui utilisé par le backend principal. Évitez d'exécuter des migrations depuis ce schéma si votre intention est de modifier la base PostgreSQL du backend.
+Les identifiants générés automatiquement après le seed sont documentés dans le fichier [admin_credentials.md](./admin_credentials.md) à la racine.
 
----
-
-## Déploiement
-
-- Build : `npm run build` (génère `dist/`)
-- Déploiement simple sur Vercel ou Netlify (le detecteur Vite fonctionne automatiquement)
-
-Recommandation vite.config.js pour production :
-
-```javascript
-// vite.config.js
-export default {
-  build: {
-    outDir: 'dist',
-    sourcemap: false,
-  }
-}
-```
+*   **Super-Admin** :
+    *   Email : `okokaroland@gmail.com`
+    *   Mot de passe : `okokaroland@gmail.com`
+*   **Admins Hôteliers** :
+    *   Identifiant : Nom de l'hôtel (ex: `Orchids' Safari Club` ou `Hôtel Panorama`)
+    *   Mot de passe : Nom de l'hôtel identique.
 
 ---
 
-## Dépannage
-
-- STT/TTS ne fonctionnent pas : vérifier permissions micro, navigateur supporté (Chrome, Safari, Edge), et recharger.
-- Erreurs Gemini (quota 429) : entrer une clé API personnalisée ou attendre le renouvellement.
-- Historique perdu au rechargement : implémenter un backend pour persistance si besoin.
-- Problèmes de DB : vérifiez `DATABASE_URL`, exécutez `bash setup-postgres.sh` et consultez les logs du backend.
-
----
-
-## Contribution
-
-1. Forkez le dépôt
-2. Créez une branche : `git checkout -b feature/ma-fonctionnalite`
-3. Committez et poussez
-4. Ouvrez une Pull Request
-
-Idées d'amélioration : stockage backend pour l'historique, intégration réservation réelle, dashboards admin, analytics de conversation, support de langues additionnelles.
-
----
-
-## Ressources
-
-- [React](https://react.dev)
-- [Vite](https://vitejs.dev)
-- [Google Gemini / GenAI](https://ai.google.dev)
-- [Tailwind CSS](https://tailwindcss.com)
-- [Web Speech API (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API)
-
----
-
-## Licence & Contact
-
-Ce projet est développé pour l'Hôtel Panorama Bukavu.
-
-- Repository : https://github.com/lucien-amani/chatbot-panorama-bukavu
-- Contact : support@hotelapanorama.cd
-
----
-
-*README mis à jour : clarification sur l'utilisation de PostgreSQL pour le backend et instructions pour configurer DATABASE_URL.*
+## 📄 Licence
+Ce projet est développé et maintenu pour le réseau hôtelier de Bukavu. 
+Pour toute assistance, contactez : `support@hotelspanorama.cd`.

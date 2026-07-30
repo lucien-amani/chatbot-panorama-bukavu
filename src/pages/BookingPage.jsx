@@ -109,6 +109,7 @@ export default function BookingPage() {
         date_arrivee: checkin,
         date_depart: checkout,
         type: locationState.type_nom,
+        hotel_slug: locationState.hotel_slug,
       });
       const typeData = disponibles.types?.[0];
       if (!typeData || typeData.chambres_disponibles === 0) {
@@ -116,7 +117,9 @@ export default function BookingPage() {
       }
       const chambres = await chambresApi.liste();
       const chambreLibre = chambres.find(c =>
-        c.type_chambre_id === typeData.type_id && c.statut === 'disponible'
+        c.type_chambre_id === typeData.type_id &&
+        c.statut === 'disponible' &&
+        c.hotel_slug === (locationState.hotel_slug || 'hotel-panorama')
       );
       if (!chambreLibre) throw new Error('Chambre introuvable.');
 
@@ -170,7 +173,7 @@ export default function BookingPage() {
   return (
     <div className="booking-page">
       <div className="booking-page-header">
-        <h1>Réservation</h1>
+        <h1>Réservation {locationState.hotel_nom ? `— ${locationState.hotel_nom}` : ''}</h1>
         <p>Complétez les étapes ci-dessous pour finaliser votre séjour</p>
       </div>
 

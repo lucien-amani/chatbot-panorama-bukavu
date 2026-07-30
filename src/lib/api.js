@@ -45,11 +45,12 @@ export const chambresApi = {
     apiFetch(`/api/chambres${statut ? `?statut=${statut}` : ''}`),
 
   /** Chambres disponibles — retour JSON structuré par type */
-  disponibles: ({ date_arrivee, date_depart, type } = {}) => {
+  disponibles: ({ date_arrivee, date_depart, type, hotel_slug } = {}) => {
     const params = new URLSearchParams();
     if (date_arrivee) params.set('date_arrivee', date_arrivee);
     if (date_depart)  params.set('date_depart', date_depart);
     if (type)         params.set('type', type);
+    if (hotel_slug)    params.set('hotel_slug', hotel_slug);
     return apiFetch(`/api/chambres/disponibles?${params.toString()}`);
   },
 

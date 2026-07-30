@@ -35,7 +35,8 @@ model Profil {
 
 model TypeChambre {
   id               String    @id @default(cuid())
-  nom              String    @unique
+  nom              String
+  hotel_slug       String    @default("hotel-panorama")
   description      String?
   prix_base_nuit   Float
   capacite_adultes Int
@@ -43,11 +44,14 @@ model TypeChambre {
   equipements      String?   // JSON stringified array
 
   chambres         Chambre[]
+
+  @@unique([hotel_slug, nom])
 }
 
 model Chambre {
   id              String      @id @default(cuid())
-  numero_chambre  String      @unique
+  numero_chambre  String
+  hotel_slug      String      @default("hotel-panorama")
   type_chambre_id String
   type_chambre    TypeChambre @relation(fields: [type_chambre_id], references: [id], onDelete: Restrict)
   etage           Int?
@@ -58,6 +62,7 @@ model Chambre {
   lignes_reservation LigneReservation[]
   commandes          Commande[]
 
+  @@unique([hotel_slug, numero_chambre])
   @@index([statut])
   @@index([type_chambre_id])
 }
@@ -66,6 +71,7 @@ model Reservation {
   id                 String   @id @default(cuid())
   utilisateur_id     String
   utilisateur        Utilisateur @relation(fields: [utilisateur_id], references: [id], onDelete: Restrict)
+  hotel_slug         String?  @default("hotel-panorama")
   statut             String   // "en_attente" | "confirmee" | "payee" | "en_sejour" | "terminee" | "annulee"
   montant_total      Float?
   date_arrivee       DateTime
@@ -119,6 +125,7 @@ model Commande {
   reservation    Reservation? @relation(fields: [reservation_id], references: [id], onDelete: SetNull)
   chambre_id     String?
   chambre        Chambre?    @relation(fields: [chambre_id], references: [id], onDelete: SetNull)
+  hotel_slug     String?     @default("hotel-panorama")
   type_commande  String      // "room_service" | "restaurant" | "blanchisserie" | "navette"
   statut         String      // "en_attente" | "en_preparation" | "prete" | "livree" | "terminee" | "annulee"
   montant_total  Float?

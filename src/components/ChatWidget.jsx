@@ -54,6 +54,7 @@ const IconMic = ({ size = 16 }) => (
 
 function renderMd(text) {
   return text
+    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" style="color: var(--accent-color); text-decoration: underline; font-weight: 700;">$1</a>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     .replace(/^- (.+)$/gm, '<li>$1</li>')
@@ -67,10 +68,10 @@ function renderMd(text) {
 import { ConciergeBell, Utensils, Waves, Van } from 'lucide-react';
 
 const SUGGESTIONS = [
-  { icon: ConciergeBell, label: 'Réserver une chambre' },
-  { icon: Utensils, label: 'Voir le menu' },
-  { icon: Waves, label: 'Vue lac Kivu' },
-  { icon: Van, label: 'Navette aéroport' },
+  { icon: ConciergeBell, label: 'Hôtels avec vue sur le lac' },
+  { icon: Utensils, label: 'Hôtels avec restaurant' },
+  { icon: Waves, label: 'Hôtel économique à Bukavu' },
+  { icon: Van, label: 'Hôtel luxe à Bukavu' },
 ];
 
 // ─── Barre audio flottante (visible seulement quand lecture en cours) ──────────
@@ -429,7 +430,7 @@ export default function ChatWidget() {
               {messages.length === 0 && (
                 <div className="cw-welcome flex flex-col items-center">
                   <BotAvatar />
-                  <p className="cw-welcome-text mt-3">Bonjour ! Je suis votre assistant exclusif.<br />Comment puis-je vous aider ?</p>
+                  <p className="cw-welcome-text mt-3">Bonjour ! Je suis <strong>Panorama Assist</strong>.<br />Je vous aide à trouver et réserver dans les meilleurs hôtels de <strong>Bukavu</strong>.</p>
                   <div className="cw-chips">
                     {SUGGESTIONS.map(s => {
                       const I = s.icon;
