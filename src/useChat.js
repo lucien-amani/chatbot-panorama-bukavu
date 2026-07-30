@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createChatSession, sendMessageStream } from './gemini';
-import { chambresApi } from './lib/api';
+import { chambresApi, hotelsApi } from './lib/api';
 
 export function useChat() {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [chambresData, setChambresData] = useState([]);
+  const [hotels, setHotels] = useState([]);
   const chatRef = useRef(null);
 
   // Keep a reference to the latest messages to avoid dependency cycles in sendMessage
@@ -15,7 +16,7 @@ export function useChat() {
     messagesRef.current = messages;
   }, [messages]);
 
-  // Charger les données de chambres de tous les hôtels au démarrage — injectées dans le system prompt
+  // Charger les données de chambres et d'hôtels au démarrage — injectées dans le system prompt
   useEffect(() => {
     // On charge sans filtre hotel_slug pour avoir tous les hôtels
     fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/chambres`)
@@ -25,15 +26,23 @@ export function useChat() {
         chatRef.current = null;
       })
       .catch(() => setChambresData([]));
+
+    // Charger la liste des hôtels
+    hotelsApi.liste()
+      .then(data => {
+        setHotels(data);
+        chatRef.current = null;
+      })
+      .catch(() => setHotels([]));
   }, []);
 
-  // Initialise ou réutilise la session Gemini (avec données chambres)
+  // Initialise ou réutilise la session Gemini (avec données chambres et hôtels)
   const getSession = useCallback(() => {
     if (!chatRef.current) {
-      chatRef.current = createChatSession(chambresData);
+      chatRef.current = createChatSession(chambresData, [], hotels);
     }
     return chatRef.current;
-  }, [chambresData]);
+  }, [chambresData, hotels]);
 
   const sendMessage = useCallback(async (userText) => {
     if (!userText.trim() || isLoading) return;
@@ -51,13 +60,19 @@ export function useChat() {
     setIsLoading(true);
 
     try {
-      // Fetch fresh room data before sending message to get real-time status/price/availability
+      // Fetch fresh room and hotels data before sending message to get real-time status/price/availability
       let freshRooms = chambresData;
+      let freshHotels = hotels;
       try {
-        const r = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/chambres`);
+        const [r, hData] = await Promise.all([
+          fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/chambres`),
+          hotelsApi.liste()
+        ]);
         if (r.ok) { freshRooms = await r.json(); setChambresData(freshRooms); }
+        freshHotels = hData;
+        setHotels(freshHotels);
       } catch (fetchErr) {
-        console.warn('Could not fetch fresh room data, using cached data:', fetchErr);
+        console.warn('Could not fetch fresh data, using cached data:', fetchErr);
       }
 
       // Re-create the Gemini session with the fresh room data, preserving existing history
@@ -81,7 +96,7 @@ export function useChat() {
       }
 
       // Recreate the session with the new systemInstruction and the history
-      const session = createChatSession(freshRooms, history);
+      const session = createChatSession(freshRooms, history, freshHotels);
       chatRef.current = session;
 
       await sendMessageStream(session, userText, (chunk) => {

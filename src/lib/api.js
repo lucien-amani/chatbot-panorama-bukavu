@@ -3,6 +3,8 @@
  * Toutes les requêtes vers le backend Express/PostgreSQL passent ici.
  */
 
+import hotelsData from '../../hotels.json';
+
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // ── Helper fetch avec token JWT automatique ────────────────
@@ -34,6 +36,94 @@ export const auth = {
   register: (email, password, nom_affiche) =>
     apiFetch('/api/auth/register', { method: 'POST', body: JSON.stringify({ email, password, nom_affiche }) }),
 };
+
+// ============================================================
+//  HOTELS
+// ============================================================
+
+export const hotelsApi = {
+  /** Obtenir la liste de tous les hôtels (API backend avec fallback local) */
+  liste: async () => {
+    try {
+      return await apiFetch('/api/hotels');
+    } catch (err) {
+      console.warn("Could not fetch hotels from API, falling back to localStorage/static:", err);
+      try {
+        const local = localStorage.getItem('bukavu_hotels_list');
+        if (local) {
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+      return hotelsData.hotels || [];
+    }
+  },
+
+  /** Ajouter ou modifier un hôtel (Super Admin) */
+  enregistrer: async (data) => {
+    try {
+      return await apiFetch('/api/admin/hotels', { method: 'POST', body: JSON.stringify(data) });
+    } catch (err) {
+      console.warn("Could not save hotel to API, saving to localStorage only:", err);
+      let localHotels = [];
+      try {
+        const local = localStorage.getItem('bukavu_hotels_list');
+        localHotels = local ? JSON.parse(local) : [...hotelsData.hotels];
+      } catch {
+        localHotels = [...hotelsData.hotels];
+      }
+      const existingIndex = localHotels.findIndex(h => h.slug === data.slug);
+      if (existingIndex > -1) {
+        localHotels[existingIndex] = data;
+      } else {
+        localHotels.push(data);
+      }
+      localStorage.setItem('bukavu_hotels_list', JSON.stringify(localHotels));
+      return { message: "Sauvegardé localement", hotel: data };
+    }
+  },
+
+  /** Supprimer un hôtel (Super Admin) */
+  supprimer: async (slug) => {
+    try {
+      return await apiFetch(`/api/admin/hotels/${slug}`, { method: 'DELETE' });
+    } catch (err) {
+      console.warn("Could not delete hotel from API, removing from localStorage only:", err);
+      try {
+        const local = localStorage.getItem('bukavu_hotels_list');
+        if (local) {
+          const parsed = JSON.parse(local);
+          const filtered = parsed.filter(h => h.slug !== slug);
+          localStorage.setItem('bukavu_hotels_list', JSON.stringify(filtered));
+        }
+      } catch {}
+      return { message: "Supprimé localement" };
+    }
+  },
+
+  /** Modifier un hôtel existant (Admin de l'hôtel ou Super Admin) */
+  modifier: async (slug, data) => {
+    try {
+      return await apiFetch(`/api/admin/hotels/${slug}`, { method: 'PUT', body: JSON.stringify(data) });
+    } catch (err) {
+      console.warn("Could not update hotel via API, updating in localStorage only:", err);
+      try {
+        const local = localStorage.getItem('bukavu_hotels_list');
+        if (local) {
+          const parsed = JSON.parse(local);
+          const index = parsed.findIndex(h => h.slug === slug);
+          if (index > -1) {
+            parsed[index] = data;
+            localStorage.setItem('bukavu_hotels_list', JSON.stringify(parsed));
+          }
+        }
+      } catch {}
+      return { message: "Modifié localement", hotel: data };
+    }
+  }
+};
+
+// ============================================================
 
 // ============================================================
 //  CHAMBRES

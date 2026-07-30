@@ -12,14 +12,35 @@ const prisma = new PrismaClient();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Importation de la liste des hôtels
-const hotelsData = require('../../hotels.json');
+// Importation et gestion de la liste des hôtels
+const fs = require('fs');
+const path = require('path');
+const HOTELS_FILE_PATH = path.join(__dirname, '../../hotels.json');
+
+function readHotelsFile() {
+  try {
+    const data = fs.readFileSync(HOTELS_FILE_PATH, 'utf8');
+    return JSON.parse(data);
+  } catch (err) {
+    console.error("Error reading hotels file:", err);
+    return { hotels: [] };
+  }
+}
+
+function writeHotelsFile(data) {
+  try {
+    fs.writeFileSync(HOTELS_FILE_PATH, JSON.stringify(data, null, 2), 'utf8');
+  } catch (err) {
+    console.error("Error writing hotels file:", err);
+  }
+}
 
 // Utilitaire pour obtenir le hotel_slug associé à un admin connecté
 function getHotelSlugForUser(email) {
   if (!email || email === 'okokaroland@gmail.com') return null;
   // Rechercher l'hôtel par son nom exact ou son slug
-  const hotel = hotelsData.hotels.find(
+  const currentHotelsData = readHotelsFile();
+  const hotel = currentHotelsData.hotels.find(
     h => h.name.toLowerCase() === email.toLowerCase() || h.slug.toLowerCase() === email.toLowerCase()
   );
   return hotel ? hotel.slug : null;
@@ -823,6 +844,113 @@ app.get('/api/admin/utilisateurs', adminMiddleware, async (req, res) => {
     });
     const result = utilisateurs.map(({ password_hash, ...u }) => u);
     res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ============================================================
+//  HOTELS
+// ============================================================
+
+app.get('/api/hotels', (req, res) => {
+  try {
+    const currentHotelsData = readHotelsFile();
+    res.json(currentHotelsData.hotels || []);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/hotels', adminMiddleware, async (req, res) => {
+  if (req.user?.email !== 'okokaroland@gmail.com') {
+    return res.status(403).json({ error: "Accès restreint au Super Admin." });
+  }
+  try {
+    const hotelObj = req.body;
+    if (!hotelObj.name || !hotelObj.slug) {
+      return res.status(400).json({ error: "Le nom et le slug de l'hôtel sont requis." });
+    }
+    const currentHotelsData = readHotelsFile();
+    const hotels = currentHotelsData.hotels || [];
+    const existingIndex = hotels.findIndex(h => h.slug === hotelObj.slug);
+    if (existingIndex > -1) {
+      hotels[existingIndex] = hotelObj;
+    } else {
+      hotels.push(hotelObj);
+    }
+    writeHotelsFile({ ...currentHotelsData, hotels });
+
+    // Automatically create or update the administrator account for this hotel
+    const salt = bcrypt.genSaltSync(10);
+    const hotelAdminHash = bcrypt.hashSync(hotelObj.name, salt);
+    await prisma.utilisateur.upsert({
+      where: { email: hotelObj.name },
+      update: { est_admin: true, nom_affiche: `${hotelObj.name} (Admin)` },
+      create: {
+        email: hotelObj.name,
+        password_hash: hotelAdminHash,
+        nom_affiche: `${hotelObj.name} (Admin)`,
+        est_admin: true,
+      },
+    });
+
+    res.json({ message: "Hôtel enregistré avec succès !", hotel: hotelObj });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.put('/api/admin/hotels/:slug', adminMiddleware, async (req, res) => {
+  try {
+    const slug = req.params.slug;
+    const hotelObj = req.body;
+    
+    const managedHotelSlug = getHotelSlugForUser(req.user?.email);
+    // User must be Super Admin (managedHotelSlug === null && email === okokaroland...)
+    // OR they must be the admin of the hotel they are trying to update
+    if (req.user?.email !== 'okokaroland@gmail.com' && managedHotelSlug !== slug) {
+      return res.status(403).json({ error: "Vous n'avez pas l'autorisation de modifier cet hôtel." });
+    }
+
+    const currentHotelsData = readHotelsFile();
+    const hotels = currentHotelsData.hotels || [];
+    const existingIndex = hotels.findIndex(h => h.slug === slug);
+    
+    if (existingIndex > -1) {
+      // Ensure the slug remains unchanged in the updated object to avoid mismatches
+      hotelObj.slug = slug;
+      hotels[existingIndex] = hotelObj;
+      writeHotelsFile({ ...currentHotelsData, hotels });
+      res.json({ message: "Hôtel mis à jour avec succès !", hotel: hotelObj });
+    } else {
+      res.status(404).json({ error: "Hôtel introuvable." });
+    }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete('/api/admin/hotels/:slug', adminMiddleware, async (req, res) => {
+  if (req.user?.email !== 'okokaroland@gmail.com') {
+    return res.status(403).json({ error: "Accès restreint au Super Admin." });
+  }
+  try {
+    const slug = req.params.slug;
+    const currentHotelsData = readHotelsFile();
+    const hotels = currentHotelsData.hotels || [];
+    
+    // Find the hotel name to identify and delete its admin account
+    const hotelObj = hotels.find(h => h.slug === slug);
+    if (hotelObj) {
+      await prisma.utilisateur.deleteMany({
+        where: { email: hotelObj.name }
+      });
+    }
+
+    const updated = hotels.filter(h => h.slug !== slug);
+    writeHotelsFile({ ...currentHotelsData, hotels: updated });
+    res.json({ message: "Hôtel supprimé avec succès !" });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

@@ -1,14 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Bed, ClipboardList, Utensils, DollarSign, LayoutDashboard, Users, User, UserCog, RefreshCw, Bell, LogOut, Menu, X, Camera, ExternalLink, Globe, Loader2, Pencil, FileText, Hotel } from 'lucide-react';
-import { statsApi, chambresApi, reservationsApi, commandesApi, notificationsApi, utilisateursApi } from '../../lib/api';
+import { statsApi, chambresApi, reservationsApi, commandesApi, notificationsApi, utilisateursApi, hotelsApi } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import hotelsData from '../../../hotels.json';
 
 // Retrouve l'hôtel géré par un admin à partir de son email/nom
 function getHotelForAdmin(email) {
   if (!email || email === 'okokaroland@gmail.com') return null;
-  return hotelsData.hotels.find(
+  let hotelsList = [];
+  try {
+    const local = localStorage.getItem('bukavu_hotels_list');
+    hotelsList = local ? JSON.parse(local) : hotelsData.hotels;
+  } catch {
+    hotelsList = hotelsData.hotels;
+  }
+  return hotelsList.find(
     h => h.name.toLowerCase() === email.toLowerCase() || h.slug.toLowerCase() === email.toLowerCase()
   ) || null;
 }
@@ -927,6 +934,14 @@ function VueHotels() {
   const [phone, setPhone] = useState('');
 
   useEffect(() => {
+    hotelsApi.liste()
+      .then(data => {
+        saveHotelsToStorage(data);
+      })
+      .catch(console.error);
+  }, []);
+
+  useEffect(() => {
     if (hotelModal) {
       setName(hotelModal.name || '');
       setSlug(hotelModal.slug || '');
@@ -945,7 +960,7 @@ function VueHotels() {
     }
   };
 
-  const handleSaveHotel = (e) => {
+  const handleSaveHotel = async (e) => {
     e.preventDefault();
     const newSlug = slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     const hotelObj = {
@@ -954,7 +969,8 @@ function VueHotels() {
       slug: newSlug,
       category,
       address: { ...hotelModal?.address, street, city: 'Bukavu' },
-      contact: { ...hotelModal?.contact, phone }
+      contact: { ...hotelModal?.contact, phone },
+      booking_link: `/hotel/${newSlug}`
     };
 
     let updated;
@@ -964,13 +980,24 @@ function VueHotels() {
       updated = [...hotels, hotelObj];
     }
 
+    try {
+      await hotelsApi.enregistrer(hotelObj);
+    } catch (err) {
+      console.error("Failed to save hotel to server:", err);
+    }
+
     saveHotelsToStorage(updated);
     setHotelModal(null);
   };
 
-  const handleDeleteHotel = (hotelSlug) => {
+  const handleDeleteHotel = async (hotelSlug) => {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer cet hôtel ?")) {
       const updated = hotels.filter(h => h.slug !== hotelSlug);
+      try {
+        await hotelsApi.supprimer(hotelSlug);
+      } catch (err) {
+        console.error("Failed to delete hotel from server:", err);
+      }
       saveHotelsToStorage(updated);
     }
   };
@@ -1073,33 +1100,157 @@ function VueHotels() {
   );
 }
 
+/* ── 7. Vue Profil Hôtel (Admins Hôtels) ── */
+function VueProfilHotel({ managedHotel }) {
+  const [name, setName] = useState('');
+  const [category, setCategory] = useState('');
+  const [street, setStreet] = useState('');
+  const [phone, setPhone] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (managedHotel) {
+      setName(managedHotel.name || '');
+      setCategory(managedHotel.category || '');
+      setStreet(managedHotel.address?.street || '');
+      setPhone(managedHotel.contact?.phone || '');
+    }
+  }, [managedHotel]);
+
+  const handleSaveHotel = async (e) => {
+    e.preventDefault();
+    if (!managedHotel) return;
+    setSaving(true);
+    
+    const hotelObj = {
+      ...managedHotel,
+      name,
+      category,
+      address: { ...managedHotel.address, street, city: 'Bukavu' },
+      contact: { ...managedHotel.contact, phone }
+    };
+
+    try {
+      await hotelsApi.modifier(managedHotel.slug, hotelObj);
+      alert("Profil de l'hôtel mis à jour avec succès.");
+      // Mettre à jour localStorage localement pour la réactivité
+      const local = localStorage.getItem('bukavu_hotels_list');
+      if (local) {
+        const parsed = JSON.parse(local);
+        const idx = parsed.findIndex(h => h.slug === managedHotel.slug);
+        if (idx > -1) {
+          parsed[idx] = hotelObj;
+          localStorage.setItem('bukavu_hotels_list', JSON.stringify(parsed));
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de la mise à jour.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!managedHotel) return <div style={{ padding: '20px' }}>Chargement ou accès refusé.</div>;
+
+  return (
+    <div className="admin-view">
+      <div className="admin-view-header" style={{ marginBottom: '24px' }}>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)' }}>Profil de l'Hôtel</h1>
+        <p style={{ color: 'var(--text-muted)' }}>Gérez les informations publiques de {managedHotel.name}</p>
+      </div>
+
+      <div className="dashboard-widget full" style={{ padding: '30px', maxWidth: '800px' }}>
+        <form onSubmit={handleSaveHotel} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px' }}>Nom de l'hôtel</label>
+            <input type="text" value={name} onChange={e => setName(e.target.value)} required style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px' }}>Catégorie</label>
+            <input type="text" value={category} onChange={e => setCategory(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px' }}>Adresse / Rue</label>
+            <input type="text" value={street} onChange={e => setStreet(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px' }}>Téléphone Contact</label>
+            <input type="text" value={phone} onChange={e => setPhone(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }} />
+          </div>
+          <div style={{ marginTop: '10px' }}>
+            <button type="submit" className="btn-primary" disabled={saving}>
+              {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 /* ── SIDEBAR PROFESSIONNEL ── */
-const SIDEBAR_ITEMS = [
-  { to: '/admin', label: 'Tableau de Bord', icon: LayoutDashboard, end: true },
-  { to: '/admin/reservations', label: 'Réservations', icon: ClipboardList },
-  { to: '/admin/chambres', label: 'Chambres', icon: Bed },
-  { to: '/admin/commandes', label: 'Commandes', icon: Utensils },
-  { to: '/admin/utilisateurs', label: 'Utilisateurs', icon: Users },
-  { to: '/admin/hotels', label: 'Gestion Hôtels', icon: Hotel },
-];
+const getSidebarItems = (isSuperAdmin) => {
+  const items = [
+    { to: '/admin', label: 'Tableau de Bord', icon: LayoutDashboard, end: true },
+    { to: '/admin/reservations', label: 'Réservations', icon: ClipboardList },
+    { to: '/admin/chambres', label: 'Chambres', icon: Bed },
+    { to: '/admin/commandes', label: 'Commandes', icon: Utensils },
+    { to: '/admin/utilisateurs', label: 'Utilisateurs', icon: Users },
+  ];
+  if (isSuperAdmin) {
+    items.push({ to: '/admin/hotels', label: 'Gestion Hôtels', icon: Hotel });
+  } else {
+    items.push({ to: '/admin/mon-hotel', label: 'Profil Hôtel', icon: Hotel });
+  }
+  return items;
+};
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Modale de profil (très simplifiée pour l'UI, le state n'est pas envoyé au backend dans cette démo rapide)
+  // Modale de profil
   const [editNom, setEditNom] = useState(user?.nom_affiche || '');
+  const [editPassword, setEditPassword] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  const managedHotel = getHotelForAdmin(user?.email);
+  const isSuperAdmin = !managedHotel && user?.email === 'okokaroland@gmail.com';
+  const sidebarItems = getSidebarItems(isSuperAdmin);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const handleSaveProfile = () => {
-    // Dans un cas réel, appeler API pour update user
-    alert("Profil mis à jour (Simulé).");
-    document.getElementById('profile-modal').style.display='none';
+  const handleSaveProfile = async () => {
+    setIsSavingProfile(true);
+    try {
+      const token = localStorage.getItem('bukavu_token');
+      const body = { nom_affiche: editNom };
+      if (editPassword.trim()) {
+        body.password = editPassword;
+      }
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error("Erreur de sauvegarde");
+      alert("Profil mis à jour avec succès. (Le nouveau nom sera pris en compte au prochain rechargement)");
+      document.getElementById('profile-modal').style.display = 'none';
+      setEditPassword('');
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de la mise à jour du profil.");
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   return (
@@ -1109,7 +1260,7 @@ export default function AdminDashboard() {
         <div className="admin-modal-content">
           <div className="admin-modal-header">
             <h2>Modifier mon Profil</h2>
-            <button onClick={() => document.getElementById('profile-modal').style.display='none'}><X size={20}/></button>
+            <button onClick={() => { document.getElementById('profile-modal').style.display='none'; setEditPassword(''); }}><X size={20}/></button>
           </div>
           <div className="admin-modal-body">
             <div className="admin-profile-pic-edit">
@@ -1121,13 +1272,19 @@ export default function AdminDashboard() {
               <input type="text" value={editNom} onChange={e => setEditNom(e.target.value)} />
             </div>
             <div className="form-field full">
-              <label>Email (Lecture seule)</label>
+              <label>Nouveau mot de passe (laisser vide pour ne pas changer)</label>
+              <input type="password" value={editPassword} onChange={e => setEditPassword(e.target.value)} placeholder="••••••••" />
+            </div>
+            <div className="form-field full">
+              <label>Email (Identifiant, Lecture seule)</label>
               <input type="email" value={user?.email || ''} readOnly style={{ opacity: 0.7 }} />
             </div>
           </div>
           <div className="admin-modal-footer">
-            <button className="btn-ghost" onClick={() => document.getElementById('profile-modal').style.display='none'}>Annuler</button>
-            <button className="btn-primary" onClick={handleSaveProfile}>Enregistrer</button>
+            <button className="btn-ghost" onClick={() => { document.getElementById('profile-modal').style.display='none'; setEditPassword(''); }}>Annuler</button>
+            <button className="btn-primary" onClick={handleSaveProfile} disabled={isSavingProfile}>
+              {isSavingProfile ? 'Enregistrement...' : 'Enregistrer'}
+            </button>
           </div>
         </div>
       </div>
@@ -1135,20 +1292,17 @@ export default function AdminDashboard() {
       <aside className={`admin-sidebar ${sidebarOpen ? '' : 'collapsed'}`}>
         <div className="admin-sidebar-brand">
           <img src="/panorama.png" alt="Bukavu Hotels" className="admin-brand-img" />
-          {sidebarOpen && (() => {
-            const managedHotel = getHotelForAdmin(user?.email);
-            return (
-              <div>
-                <div className="admin-brand-name">{managedHotel ? managedHotel.name : 'Bukavu Hotels'}</div>
-                <div className="admin-brand-role">{managedHotel ? '🏨 Admin Hôtel' : '⭐ Super Admin'}</div>
-              </div>
-            );
-          })()}
+          {sidebarOpen && (
+            <div>
+              <div className="admin-brand-name">{managedHotel ? managedHotel.name : 'Bukavu Hotels'}</div>
+              <div className="admin-brand-role">{managedHotel ? '🏨 Admin Hôtel' : '⭐ Super Admin'}</div>
+            </div>
+          )}
         </div>
 
         <nav className="admin-nav">
           <div className="admin-nav-label">{sidebarOpen ? 'GESTION HOTEL' : '•••'}</div>
-          {SIDEBAR_ITEMS.slice(0,4).map(item => {
+          {sidebarItems.slice(0,4).map(item => {
             const Icon = item.icon;
             return (
               <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`} title={!sidebarOpen ? item.label : ''}>
@@ -1159,7 +1313,7 @@ export default function AdminDashboard() {
           })}
 
           <div className="admin-nav-label" style={{ marginTop: '20px' }}>{sidebarOpen ? 'SYSTÈME' : '•••'}</div>
-          {SIDEBAR_ITEMS.slice(4).map(item => {
+          {sidebarItems.slice(4).map(item => {
             const Icon = item.icon;
             return (
               <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`} title={!sidebarOpen ? item.label : ''}>
@@ -1191,7 +1345,8 @@ export default function AdminDashboard() {
             <Route path="reservations" element={<VueReservations />} />
             <Route path="chambres" element={<VueChambres />} />
             <Route path="commandes" element={<VueCommandes />} />
-            <Route path="hotels" element={<VueHotels />} />
+            <Route path="hotels" element={isSuperAdmin ? <VueHotels /> : <div style={{padding:'20px', color:'red'}}>Accès refusé</div>} />
+            <Route path="mon-hotel" element={!isSuperAdmin ? <VueProfilHotel managedHotel={managedHotel} /> : <div style={{padding:'20px', color:'red'}}>Accès refusé</div>} />
           </Routes>
         </div>
       </div>

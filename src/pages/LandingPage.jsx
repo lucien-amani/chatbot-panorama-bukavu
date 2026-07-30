@@ -1,11 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar as CalIcon, MapPin, ArrowRight, Building2, Check } from 'lucide-react';
-import hotelsData from '../../hotels.json';
+import { hotelsApi } from '../lib/api';
 
 export default function LandingPage() {
   const navigate = useNavigate();
   const [hotelSlug, setHotelSlug] = useState('');
+  const [hotels, setHotels] = useState([]);
+
+  useEffect(() => {
+    hotelsApi.liste().then(setHotels).catch(() => {});
+  }, []);
   
   // Custom simple date inputs (format JJ-MM)
   const [checkinRaw, setCheckinRaw] = useState('');
@@ -73,7 +78,7 @@ export default function LandingPage() {
                 {hotelSlug === '' && <Check size={14} />}
               </button>
 
-              {hotelsData.hotels.map((h) => (
+              {hotels.map((h) => (
                 <button
                   key={h.slug}
                   type="button"

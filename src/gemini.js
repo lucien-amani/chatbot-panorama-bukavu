@@ -21,12 +21,8 @@ export function clearApiKey() {
   localStorage.removeItem('hackerbot_api_key');
 }
 
-// ─── Données statiques des hôtels (hotels.json importé) ──────────────────────
-import hotelsData from '../hotels.json';
-
 // ─── Construire le catalogue des hôtels pour le prompt ────────────────────────
-function buildHotelsCatalogue() {
-  const hotels = hotelsData.hotels || [];
+function buildHotelsCatalogue(hotels = []) {
   let catalogue = '';
   for (const h of hotels) {
     const roomTypes = h.features?.rooms?.types || [];
@@ -59,7 +55,7 @@ ${h.contact?.website ? `- **Site web** : ${h.contact.website}` : ''}
 }
 
 // ─── System Prompt principal ──────────────────────────────────────────────────
-function buildSystemInstruction(chambresData) {
+function buildSystemInstruction(chambresData, hotels = []) {
   // Données temps réel chambres (pour l'hôtel actif)
   let roomContext = '';
   if (chambresData && chambresData.length > 0) {
@@ -100,7 +96,7 @@ function buildSystemInstruction(chambresData) {
     roomContext = '\n\n## DISPONIBILITÉ EN TEMPS RÉEL\nDonnées indisponibles pour le moment. Oriente le client vers la page **/chambres** du site ou les appelle à contacter directement l\'hôtel.\n';
   }
 
-  const hotelsCatalogue = buildHotelsCatalogue();
+  const hotelsCatalogue = buildHotelsCatalogue(hotels);
 
   return `Tu es **Bukavu Hotels Assist**, l'assistant virtuel officiel de la **plateforme Bukavu Hotels** (République Démocratique du Congo).
 
@@ -164,7 +160,7 @@ ${roomContext}`;
 }
 
 // ─── Session Gemini ───────────────────────────────────────────────────────────
-export function createChatSession(chambresData = [], history = []) {
+export function createChatSession(chambresData = [], history = [], hotels = []) {
   const apiKey = getApiKey();
   if (!apiKey || !apiKey.trim()) {
     throw new Error("Clé API manquante. Configurez votre clé API Gemini dans les paramètres (icône engrenage).");
@@ -174,7 +170,7 @@ export function createChatSession(chambresData = [], history = []) {
     model: MODEL_NAME,
     history,
     config: {
-      systemInstruction: buildSystemInstruction(chambresData),
+      systemInstruction: buildSystemInstruction(chambresData, hotels),
       temperature: 0.7,
       maxOutputTokens: 2048,
     },

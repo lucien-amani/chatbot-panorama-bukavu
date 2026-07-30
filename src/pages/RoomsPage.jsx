@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { X, Check, ArrowRight, BedDouble, Users, Info, MapPin } from 'lucide-react';
-import { chambresApi } from '../lib/api';
-import hotelsData from '../../hotels.json';
+import { chambresApi, hotelsApi } from '../lib/api';
 
 const FALLBACK_IMAGES = [
   'https://images.unsplash.com/photo-1611892440504-42a792e24d32?q=80&w=900&auto=format&fit=crop',
@@ -52,11 +51,10 @@ function RoomCard({ chambre, isAvailable, onClick }) {
 }
 
 // --- Detail Modal ---
-function RoomModal({ chambre, type, isAvailable, onClose, onReserver, initialCheckin, initialCheckout }) {
+function RoomModal({ chambre, type, hotel, isAvailable, onClose, onReserver, initialCheckin, initialCheckout }) {
   if (!chambre || !type) return null;
   
   const imgSrc = chambre.image_url || FALLBACK_IMAGES[parseInt(chambre.numero_chambre) % FALLBACK_IMAGES.length] || FALLBACK_IMAGES[0];
-  const hotel = hotelsData.hotels.find(h => h.slug === chambre.hotel_slug);
 
   const equipements = Array.isArray(type.equipements)
     ? type.equipements
@@ -197,7 +195,13 @@ export default function RoomsPage() {
   const initialCheckin = searchParams.get('checkin') || '';
   const initialCheckout = searchParams.get('checkout') || '';
 
-  const hotelActif = hotelSlugParam ? (hotelsData.hotels.find(h => h.slug === hotelSlugParam) || null) : null;
+  const [hotels, setHotels] = useState([]);
+
+  useEffect(() => {
+    hotelsApi.liste().then(setHotels).catch(() => {});
+  }, []);
+
+  const hotelActif = hotelSlugParam ? (hotels.find(h => h.slug === hotelSlugParam) || null) : null;
 
   const [chambres, setChambres] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -238,7 +242,7 @@ export default function RoomsPage() {
         type_nom: t.nom,
         prix: t.prix_base_nuit,
         hotel_slug: ch.hotel_slug || hotelSlugParam || 'hotel-panorama',
-        hotel_nom: hotelsData.hotels.find(h => h.slug === ch.hotel_slug)?.name || hotelActif?.name || null,
+        hotel_nom: hotels.find(h => h.slug === ch.hotel_slug)?.name || hotelActif?.name || null,
         date_arrivee: initialCheckin,
         date_depart: initialCheckout,
       }
@@ -304,7 +308,7 @@ export default function RoomsPage() {
         ) : (
           <div className="space-y-16">
             {Object.keys(groupedRooms).map(slug => {
-              const hData = hotelsData.hotels.find(h => h.slug === slug);
+              const hData = hotels.find(h => h.slug === slug);
               const hotelName = hData ? hData.name : 'Autres Hôtels';
               const rooms = groupedRooms[slug];
 
@@ -343,6 +347,7 @@ export default function RoomsPage() {
         <RoomModal 
           chambre={selectedRoom.chambre}
           type={selectedRoom.type}
+          hotel={hotels.find(h => h.slug === selectedRoom.chambre.hotel_slug)}
           isAvailable={isRoomAvailable(selectedRoom.chambre)}
           onClose={closeModal}
           onReserver={handleReserver}
